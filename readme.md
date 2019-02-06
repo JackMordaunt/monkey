@@ -87,4 +87,8 @@ The first transformation (source code -> tokens) is called "lexical analysis", o
 
 Tokens are tiny datastructures that categorize every important unit of source code. Variable names, string, number and other literals, return statements, etc.
 
-## Left Off: Handle Keywords, Identifiers and Numbers
+## Performance Optimisations
+
+### Zero allocation lexing
+
+- Reuse String buffer tied to Lexer object.
