@@ -146,26 +146,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn single_char_tokens() {
-        let input: &'static str = "=+(){},;";
-        let tokens = vec![
-            Token::Assign, 
-            Token::Plus, 
-            Token::LeftParen, 
-            Token::RightParen,
-            Token::LeftBrace, 
-            Token::RightBrace, 
-            Token::Comma, 
-            Token::Semicolon, 
-        ];
-        let mut lexer = Lexer::new(input.chars());
-        for token in tokens.into_iter() {
-            assert_eq!(Some(token), lexer.next());
-        }
-    }
-
-    #[test]
-    fn multi_char_tokens() {
+    fn tokens() {
         let input: &'static str = r#"
             let five = 5;
             let ten = 10;
