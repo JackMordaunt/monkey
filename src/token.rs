@@ -1,32 +1,6 @@
-// Sample monkey to lex: 
-//
-// let five = 5; let ten = 10;
-//
-// let add = fn(x, y) {
-//      x + y;
-// };
-//
-// let result = add(five, ten);
-//
+#![allow(dead_code)]
 
-
-// ILLEGAL = "ILLEGAL" EOF = "EOF"
-// // Identifiers + literals
-// IDENT = "IDENT" // add, foobar, x, y, ...
-// INT = "INT"
-// // Operators
-// ASSIGN   = "="
-// PLUS     = "+"
-// // Delimiters
-// COMMA     = ","
-// SEMICOLON = ";"
-// LPAREN = "("
-// RPAREN = ")"
-// LBRACE = "{"
-// RBRACE = "}"
-// // Keywords
-//        FUNCTION = "FUNCTION"
-// LET = "LET"
+use std::iter::Peekable;
 
 #[derive(Eq, PartialEq, Debug)]
 enum Token {
@@ -52,19 +26,13 @@ enum Token {
     Return,
 }
 
-impl From<char> for Token {
-    fn from(ch: char) -> Token {
-        match ch {
-            '=' => Token::Assign,
-            '+' => Token::Plus,
-            '(' => Token::LeftParen,
-            ')' => Token::RightParen,
-            '{' => Token::LeftBrace,
-            '}' => Token::RightBrace,
-            ',' => Token::Comma,
-            ';' => Token::Semicolon,
-            '\0'=> Token::Eof,
-            _ => Token::Illegal(ch.to_string()),
+impl Token {
+    fn keyword(s: &str) -> Option<Token> {
+        match s {
+            "fn" => Some(Token::Function),
+            "let" => Some(Token::Let),
+            "return" => Some(Token::Return),
+            _ => None,
         }
     }
 }
@@ -72,18 +40,72 @@ impl From<char> for Token {
 struct Lexer<I>
     where I: Iterator<Item=char>,
 {
-    input: I,
-    // position: u32,      // Current position.
-    // read_position: u32, // Next position.
-    // ch: Option<char>,   // Char at current position.
+    input: Peekable<I>,
+    ch: char,
 }
 
 impl<I> Lexer<I>
     where I: Iterator<Item=char>,
 {
-    fn new(input: I) -> Lexer<I> {
-        Lexer {
-            input,
+    pub fn new(input: I) -> Lexer<I> {
+        let mut l = Lexer {
+            input: input.peekable(),
+            ch: '\0',
+        };
+        l.next().unwrap();
+        l
+    }
+
+    fn read_identifier(&mut self) -> Token {
+        let mut ident = self.ch.to_string();
+        loop {
+            let ch = match self.input.peek() {
+                Some(ch) => ch,
+                None => return Token::Eof,
+            };
+            if ch.is_alphabetic() {
+                self.ch = match self.input.next() {
+                    Some(ch) => ch,
+                    None => return Token::Eof,
+                };
+                ident.push(self.ch);
+            } else {
+                break;
+            }
+        }
+        match Token::keyword(&ident) {
+            Some(keyword) => keyword,
+            None => Token::Ident(ident),
+        }
+    }
+
+    fn read_number(&mut self) -> Token {
+        let mut ident = self.ch.to_string();
+        loop {
+            let ch = match self.input.peek() {
+                Some(ch) => ch,
+                None => return Token::Eof,
+            };
+            if ch.is_numeric() {
+                self.ch = match self.input.next() {
+                    Some(ch) => ch,
+                    None => return Token::Eof,
+                };
+                ident.push(self.ch);
+            } else {
+                break;
+            }
+        }
+        // Note: Is parsing numerics at the lexer stage appropriate? 
+        Token::Int(ident.parse().unwrap())
+    }
+
+    fn eat_space(&mut self) {
+        while self.ch.is_whitespace() {
+            self.ch = match self.input.next() {
+                Some(ch) => ch,
+                None => return,
+            };
         }
     }
 }
@@ -94,10 +116,32 @@ impl<I> Iterator for Lexer<I>
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.input.next() {
-            Some(ch) => Some(Token::from(ch)),
-            None => Some(Token::Eof),
-        }
+        self.eat_space();
+        let tok = match self.ch {
+            '=' => Token::Assign,
+            '+' => Token::Plus,
+            '(' => Token::LeftParen,
+            ')' => Token::RightParen,
+            '{' => Token::LeftBrace,
+            '}' => Token::RightBrace,
+            ',' => Token::Comma,
+            ';' => Token::Semicolon,
+            '\0'=> Token::Eof,
+            _ => {
+                if self.ch.is_alphabetic() {
+                    self.read_identifier()
+                } else if self.ch.is_numeric() {
+                    self.read_number()
+                } else {
+                    Token::Illegal(self.ch.to_string())
+                }
+            }
+        };
+        self.ch = match self.input.next() {
+            Some(ch) => ch,
+            None => '\0',
+        };
+        Some(tok)
     }
 }
 
@@ -129,13 +173,10 @@ mod tests {
     fn multi_char_tokens() {
         let input: &'static str = r#"
             let five = 5;
-
             let ten = 10;
-
             let add = fn(a, b) {
                 return a + b;
             };
-
             let result = add(five, ten);
         "#;
         let tokens = vec![
@@ -174,9 +215,9 @@ mod tests {
             Token::Assign,
             Token::Ident("add".to_owned()),
             Token::LeftParen,
-            Token::Ident("a".to_owned()),
+            Token::Ident("five".to_owned()),
             Token::Comma,
-            Token::Ident("b".to_owned()),
+            Token::Ident("ten".to_owned()),
             Token::RightParen,
             Token::Semicolon,
         ];
