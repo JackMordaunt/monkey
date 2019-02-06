@@ -30,11 +30,11 @@
 
 #[derive(Eq, PartialEq, Debug)]
 enum Token {
-    Illegal,
+    Illegal(String),
     Eof,
 
     Ident(String),
-    Int,
+    Int(i32),
 
     Assign,
     Plus,
@@ -64,7 +64,7 @@ impl From<char> for Token {
             ',' => Token::Comma,
             ';' => Token::Semicolon,
             '\0'=> Token::Eof,
-            _ => Token::Illegal,
+            _ => Token::Illegal(ch.to_string()),
         }
     }
 }
@@ -140,43 +140,43 @@ mod tests {
         "#;
         let tokens = vec![
             Token::Let,
-            Token::Ident,
+            Token::Ident("five".to_owned()),
             Token::Assign,
-            Token::Int,
+            Token::Int(5),
             Token::Semicolon,
 
             Token::Let,
-            Token::Ident,
+            Token::Ident("ten".to_owned()),
             Token::Assign,
-            Token::Int,
+            Token::Int(10),
             Token::Semicolon,
 
             Token::Let,
-            Token::Ident,
+            Token::Ident("add".to_owned()),
             Token::Assign,
             Token::Function,
             Token::LeftParen,
-            Token::Ident,
+            Token::Ident("a".to_owned()),
             Token::Comma,
-            Token::Ident,
+            Token::Ident("b".to_owned()),
             Token::RightParen,
             Token::LeftBrace,
             Token::Return,
-            Token::Ident, 
+            Token::Ident("a".to_owned()), 
             Token::Plus,
-            Token::Ident,
+            Token::Ident("b".to_owned()),
             Token::Semicolon,
             Token::RightBrace,
             Token::Semicolon,
 
             Token::Let,
-            Token::Ident,
+            Token::Ident("result".to_owned()),
             Token::Assign,
-            Token::Ident,
+            Token::Ident("add".to_owned()),
             Token::LeftParen,
-            Token::Ident,
+            Token::Ident("a".to_owned()),
             Token::Comma,
-            Token::Ident,
+            Token::Ident("b".to_owned()),
             Token::RightParen,
             Token::Semicolon,
         ];
