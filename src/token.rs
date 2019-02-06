@@ -60,14 +60,10 @@ struct Lexer<I>
 impl<I> Lexer<I>
     where I: Iterator<Item=char>,
 {
-    pub fn new(mut input: I) -> Lexer<I> {
-        let ch = match input.next() {
-            Some(ch) => ch,
-            None => '\0',
-        };
+    pub fn new(input: I) -> Lexer<I> {
         Lexer {
             input: input.peekable(),
-            ch,
+            ch: '\0',
         }
     }
 
@@ -90,16 +86,20 @@ impl<I> Lexer<I>
                 break;
             }
         }
-        Token::from(ident)
+        Token::ident(&ident)
     }
 
     fn eat_space(&mut self) {
         while self.ch.is_whitespace() {
-            self.ch = match self.input.next() {
-                Some(ch) => ch,
-                None => return,
-            };
+            self.advance();
         }
+    }
+
+    fn advance(&mut self) {
+        self.ch = match self.input.next() {
+            Some(ch) => ch,
+            None => '\0',
+        };
     }
 }
 
@@ -109,6 +109,7 @@ impl<I> Iterator for Lexer<I>
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
+        self.advance();
         self.eat_space();
         let tok = match self.ch {
             '=' => Token::Assign,
@@ -135,13 +136,6 @@ impl<I> Iterator for Lexer<I>
                     Token::Illegal(self.ch.to_string())
                 }
             }
-        };
-        if let Token::Eof = tok {
-            return None;
-        }
-        self.ch = match self.input.next() {
-            Some(ch) => ch,
-            None => '\0',
         };
         Some(tok)
     }
