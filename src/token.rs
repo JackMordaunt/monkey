@@ -15,6 +15,12 @@ enum Token {
 
     Comma,
     Semicolon,
+    Bang,
+    Minus,
+    Slash,
+    Asterisk,
+    ArrowLeft,
+    ArrowRight,
 
     LeftParen,
     RightParen,
@@ -113,7 +119,13 @@ impl<I> Iterator for Lexer<I>
             '}' => Token::RightBrace,
             ',' => Token::Comma,
             ';' => Token::Semicolon,
-            '\0'=> Token::Eof,
+            '!' => Token::Bang,
+            '-' => Token::Minus,
+            '/' => Token::Slash,
+            '<' => Token::ArrowLeft,
+            '>' => Token::ArrowRight,
+            '*' => Token::Asterisk,
+            '\0'=> return None,
             _ => {
                 if self.ch.is_alphabetic() {
                     self.read(|c: &char| c.is_alphabetic())
@@ -211,11 +223,52 @@ mod tests {
             Token::Ident("ten".to_owned()),
             Token::RightParen,
             Token::Semicolon,
+
+            Token::Bang,
+            Token::Minus,
+            Token::Slash,
+            Token::Asterisk,
+            Token::Int(5),
+            Token::Semicolon,
+
+            Token::Int(5),
+            Token::ArrowLeft,
+            Token::Int(10),
+            Token::ArrowRight,
+            Token::Int(5),
+            Token::Semicolon,
         ];
         let got: Vec<Token> = Lexer::new(input.chars()).collect();
-        assert_eq!(want.len(), got.len());
+        if want.len() != got.len() {
+            panic!("want={:?} \ngot={:?} \ndiff={:?}", want, got, diff(&want, &got));
+        }
         for (ii, token) in want.into_iter().enumerate() {
             assert_eq!(token, got[ii]);
         }
     }
+}
+
+type Diff<'a, 'b, T> = Vec<(usize, Option<&'a T>, Option<&'b T>)>;
+
+fn diff<'a, 'b, T>(left: &'a [T], right: &'b [T]) -> Diff<'a, 'b, T>
+    where T: PartialEq
+{
+    let mut diff = vec![];
+    let min = std::cmp::min(left.len(), right.len());
+    for ii in 0..min {
+        if &left[ii] != &right[ii] {
+            diff.push((ii, Some(&left[ii]), Some(&right[ii])));
+        }
+    }
+    if left.len() > right.len() {
+        for ii in 0..left.len()-right.len() {
+            diff.push((min+ii, Some(&left[min+ii]), None))
+        }
+    }
+    if left.len() < right.len() {
+        for ii in 0..right.len()-left.len() {
+            diff.push((min+ii, None, Some(&right[min+ii])))
+        }
+    }
+    return diff;
 }
