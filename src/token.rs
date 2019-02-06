@@ -61,13 +61,15 @@ struct Lexer<I>
 impl<I> Lexer<I>
     where I: Iterator<Item=char>,
 {
-    pub fn new(input: I) -> Lexer<I> {
-        let mut l = Lexer {
-            input: input.peekable(),
-            ch: '\0',
+    pub fn new(mut input: I) -> Lexer<I> {
+        let ch = match input.next() {
+            Some(ch) => ch,
+            None => '\0',
         };
-        l.next().unwrap();
-        l
+        Lexer {
+            input: input.peekable(),
+            ch,
+        }
     }
 
     fn read<P>(&mut self, predicate: P) -> Token
@@ -129,6 +131,9 @@ impl<I> Iterator for Lexer<I>
                 }
             }
         };
+        if let Token::Eof = tok {
+            return None;
+        }
         self.ch = match self.input.next() {
             Some(ch) => ch,
             None => '\0',
@@ -153,7 +158,6 @@ mod tests {
             Token::RightBrace, 
             Token::Comma, 
             Token::Semicolon, 
-            Token::Eof,
         ];
         let mut lexer = Lexer::new(input.chars());
         for token in tokens.into_iter() {
@@ -170,8 +174,10 @@ mod tests {
                 return a + b;
             };
             let result = add(five, ten);
+            !-/*5;
+            5 < 10 > 5;
         "#;
-        let tokens = vec![
+        let want = vec![
             Token::Let,
             Token::Ident("five".to_owned()),
             Token::Assign,
@@ -213,9 +219,10 @@ mod tests {
             Token::RightParen,
             Token::Semicolon,
         ];
-        let mut lexer = Lexer::new(input.chars());
-        for token in tokens.into_iter() {
-            assert_eq!(Some(token), lexer.next());
+        let got: Vec<Token> = Lexer::new(input.chars()).collect();
+        assert_eq!(want.len(), got.len());
+        for (ii, token) in want.into_iter().enumerate() {
+            assert_eq!(token, got[ii]);
         }
     }
 }
