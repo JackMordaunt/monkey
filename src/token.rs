@@ -26,13 +26,27 @@ enum Token {
     Return,
 }
 
-impl Token {
-    fn keyword(s: &str) -> Option<Token> {
-        match s {
-            "fn" => Some(Token::Function),
-            "let" => Some(Token::Let),
-            "return" => Some(Token::Return),
-            _ => None,
+impl From<String> for Token {
+    fn from(s: String) -> Token {
+        match &s as &str {
+            "=" => Token::Assign,
+            "+" => Token::Plus,
+            "(" => Token::LeftParen,
+            ")" => Token::RightParen,
+            "{" => Token::LeftBrace,
+            "}" => Token::RightBrace,
+            "," => Token::Comma,
+            ";" => Token::Semicolon,
+            "\0" => Token::Eof,
+            "fn" => Token::Function,
+            "let" => Token::Let,
+            "return" => Token::Return,
+            s if s.parse::<i32>().is_ok() => {
+                Token::Int(s.parse().unwrap())
+            }
+            _ => {
+                Token::Ident(s)
+            }
         }
     }
 }
@@ -56,14 +70,16 @@ impl<I> Lexer<I>
         l
     }
 
-    fn read_identifier(&mut self) -> Token {
+    fn read<P>(&mut self, predicate: P) -> Token
+        where P: Fn(&char) -> bool
+    {
         let mut ident = self.ch.to_string();
         loop {
             let ch = match self.input.peek() {
                 Some(ch) => ch,
                 None => return Token::Eof,
-            };
-            if ch.is_alphabetic() {
+            }; 
+            if predicate(ch) {
                 self.ch = match self.input.next() {
                     Some(ch) => ch,
                     None => return Token::Eof,
@@ -73,31 +89,7 @@ impl<I> Lexer<I>
                 break;
             }
         }
-        match Token::keyword(&ident) {
-            Some(keyword) => keyword,
-            None => Token::Ident(ident),
-        }
-    }
-
-    fn read_number(&mut self) -> Token {
-        let mut ident = self.ch.to_string();
-        loop {
-            let ch = match self.input.peek() {
-                Some(ch) => ch,
-                None => return Token::Eof,
-            };
-            if ch.is_numeric() {
-                self.ch = match self.input.next() {
-                    Some(ch) => ch,
-                    None => return Token::Eof,
-                };
-                ident.push(self.ch);
-            } else {
-                break;
-            }
-        }
-        // Note: Is parsing numerics at the lexer stage appropriate? 
-        Token::Int(ident.parse().unwrap())
+        Token::from(ident)
     }
 
     fn eat_space(&mut self) {
@@ -129,9 +121,9 @@ impl<I> Iterator for Lexer<I>
             '\0'=> Token::Eof,
             _ => {
                 if self.ch.is_alphabetic() {
-                    self.read_identifier()
+                    self.read(|c: &char| c.is_alphabetic())
                 } else if self.ch.is_numeric() {
-                    self.read_number()
+                    self.read(|c: &char| c.is_numeric())
                 } else {
                     Token::Illegal(self.ch.to_string())
                 }
