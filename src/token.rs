@@ -26,26 +26,19 @@ enum Token {
     Return,
 }
 
-impl From<String> for Token {
-    fn from(s: String) -> Token {
-        match &s as &str {
-            "=" => Token::Assign,
-            "+" => Token::Plus,
-            "(" => Token::LeftParen,
-            ")" => Token::RightParen,
-            "{" => Token::LeftBrace,
-            "}" => Token::RightBrace,
-            "," => Token::Comma,
-            ";" => Token::Semicolon,
-            "\0" => Token::Eof,
+impl Token {
+    /// ident constructs the appropriate Token for the given multi-character
+    /// word. 
+    fn ident(word: &str) -> Token {
+        match word {
             "fn" => Token::Function,
             "let" => Token::Let,
             "return" => Token::Return,
-            s if s.parse::<i32>().is_ok() => {
-                Token::Int(s.parse().unwrap())
+            word if word.parse::<i32>().is_ok() => {
+                Token::Int(word.parse().unwrap())
             }
             _ => {
-                Token::Ident(s)
+                Token::Ident(word.to_owned())
             }
         }
     }
