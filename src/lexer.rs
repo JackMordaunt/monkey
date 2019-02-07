@@ -143,7 +143,7 @@ impl<I> Iterator for Lexer<I>
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::util::diff;
     #[test]
     fn tokens() {
         let input: &'static str = r#"
@@ -262,29 +262,4 @@ mod tests {
             assert_eq!(token, got[ii]);
         }
     }
-}
-
-type Diff<'a, 'b, T> = Vec<(usize, Option<&'a T>, Option<&'b T>)>;
-
-fn diff<'a, 'b, T>(left: &'a [T], right: &'b [T]) -> Diff<'a, 'b, T>
-    where T: PartialEq
-{
-    let mut diff = vec![];
-    let min = std::cmp::min(left.len(), right.len());
-    for ii in 0..min {
-        if &left[ii] != &right[ii] {
-            diff.push((ii, Some(&left[ii]), Some(&right[ii])));
-        }
-    }
-    if left.len() > right.len() {
-        for ii in 0..left.len()-right.len() {
-            diff.push((min+ii, Some(&left[min+ii]), None))
-        }
-    }
-    if left.len() < right.len() {
-        for ii in 0..right.len()-left.len() {
-            diff.push((min+ii, None, Some(&right[min+ii])))
-        }
-    }
-    return diff;
 }
