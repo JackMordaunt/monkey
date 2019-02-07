@@ -93,6 +93,14 @@ The lexing algorithim, that is the logic for transforming mere characters into t
 
 In other words, handle all statically known tokens (singles first, then doubles, up to keywords), then handle dynamic tokens like identifiers, numbers and other literals.
 
+## Parsing
+
+Parsing is the process whereby tokens are structured into a (abstract syntax) tree, such that it is possible to evaluate.
+
+I use a recursive descent parser because, while it doesn't have the beset performance characteristics, it models how we naturally think about abstract syntax trees. Basically, start at the root node and parse recursively.
+
+For this parser "statements" do not produce values, whereas "expressions" do produce values.
+
 ## Performance Optimisations
 
 ### Zero allocation lexing
