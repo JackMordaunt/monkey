@@ -9,6 +9,7 @@ enum Token {
 
     Ident(String),
     Int(i32),
+    Bool(bool),
 
     Assign,
     Plus,
@@ -30,6 +31,11 @@ enum Token {
     Function,
     Let,
     Return,
+    If,
+    Else,
+
+    Equal,
+    NotEqual,
 }
 
 impl Token {
@@ -40,6 +46,10 @@ impl Token {
             "fn" => Token::Function,
             "let" => Token::Let,
             "return" => Token::Return,
+            "if" => Token::If,
+            "else" => Token::Else,
+            "true" => Token::Bool(true),
+            "false" => Token::Bool(false),
             word if word.parse::<i32>().is_ok() => {
                 Token::Int(word.parse().unwrap())
             }
@@ -112,7 +122,6 @@ impl<I> Iterator for Lexer<I>
         self.advance();
         self.eat_space();
         let tok = match self.ch {
-            '=' => Token::Assign,
             '+' => Token::Plus,
             '(' => Token::LeftParen,
             ')' => Token::RightParen,
@@ -120,13 +129,38 @@ impl<I> Iterator for Lexer<I>
             '}' => Token::RightBrace,
             ',' => Token::Comma,
             ';' => Token::Semicolon,
-            '!' => Token::Bang,
             '-' => Token::Minus,
             '/' => Token::Slash,
             '<' => Token::ArrowLeft,
             '>' => Token::ArrowRight,
             '*' => Token::Asterisk,
-            '\0'=> return None,
+            '\0' => return None,
+            '=' => {
+                match self.input.peek() {
+                    Some(next) => {
+                        if next == &'=' {
+                            self.advance();
+                            Token::Equal
+                        } else {
+                            Token::Assign
+                        }
+                    }
+                    None => Token::Assign
+                }
+            },
+            '!' => {
+                match self.input.peek() {
+                    Some(next) => {
+                        if next == &'=' {
+                            self.advance();
+                            Token::NotEqual
+                        } else {
+                            Token::Bang
+                        }
+                    }
+                    None => Token::Bang
+                }
+            },
             _ => {
                 if self.ch.is_alphabetic() {
                     self.read(|c: &char| c.is_alphabetic())
@@ -149,13 +183,27 @@ mod tests {
     fn tokens() {
         let input: &'static str = r#"
             let five = 5;
+
             let ten = 10;
+            
             let add = fn(a, b) {
                 return a + b;
             };
+
             let result = add(five, ten);
+
             !-/*5;
+
             5 < 10 > 5;
+
+            if (5 < 10) {
+                return true;
+            } else {
+                return false;
+            }
+
+            5 == 5;
+            5 != 10;
         "#;
         let want = vec![
             Token::Let,
@@ -211,6 +259,34 @@ mod tests {
             Token::Int(10),
             Token::ArrowRight,
             Token::Int(5),
+            Token::Semicolon,
+
+            Token::If,
+            Token::LeftParen,
+            Token::Int(5),
+            Token::ArrowLeft,
+            Token::Int(10),
+            Token::RightParen,
+            Token::LeftBrace,
+            Token::Return,
+            Token::Bool(true),
+            Token::Semicolon,
+            Token::RightBrace,
+            Token::Else,
+            Token::LeftBrace,
+            Token::Return,
+            Token::Bool(false),
+            Token::Semicolon,
+            Token::RightBrace,
+
+            Token::Int(5),
+            Token::Equal,
+            Token::Int(5),
+            Token::Semicolon,
+
+            Token::Int(5),
+            Token::NotEqual,
+            Token::Int(10),
             Token::Semicolon,
         ];
         let got: Vec<Token> = Lexer::new(input.chars()).collect();
