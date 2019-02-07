@@ -87,6 +87,12 @@ The first transformation (source code -> tokens) is called "lexical analysis", o
 
 Tokens are tiny datastructures that categorize every important unit of source code. Variable names, string, number and other literals, return statements, etc.
 
+### Algorithm Philosophy
+
+The lexing algorithim, that is the logic for transforming mere characters into tokens, follows this simple principle: handle the simplest, lowest information, inputs first.
+
+In other words, handle all statically known tokens (singles first, then doubles, up to keywords), then handle dynamic tokens like identifiers, numbers and other literals.
+
 ## Performance Optimisations
 
 ### Zero allocation lexing
