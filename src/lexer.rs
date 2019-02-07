@@ -3,7 +3,7 @@
 use std::iter::Peekable;
 
 #[derive(Eq, PartialEq, Debug)]
-enum Token {
+pub enum Token {
     Illegal(String),
     Eof,
 
@@ -60,7 +60,7 @@ impl Token {
     }
 }
 
-struct Lexer<I>
+pub struct Lexer<I>
     where I: Iterator<Item=char>,
 {
     input: Peekable<I>,
