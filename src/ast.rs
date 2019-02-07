@@ -1,46 +1,53 @@
 use crate::token::Token;
 
-pub trait Node {
-    fn token(&self) -> Token;
+/// Node is an object that can exist in an AST.
+#[derive(Eq, PartialEq, Debug)]
+pub enum Node {
+    // Placeholder just allows for a partialially constructed Node (for easier
+    // development). Means I don't have to have all the parsing complete at once.
+    Placeholder,
+    Let { name: String, value: Box<Node> },
+    Return { value: Box<Node> },
+    Int(i32),
+    If { predicate: Box<Node>, success: Box<Node>, fail: Option<Box<Node>> },
+    Prefix { operator: Prefix, right: Box<Node> },
+    Infix { left: Box<Node>, operator: Infix, right: Box<Node> },
 }
 
-trait Expression {}
-
-pub struct Program<N> {
-    statements: Vec<N>,
+// Prefix operator. 
+#[derive(Eq, PartialEq, Debug)]
+pub enum Prefix {
+    Not, // !
+    Negative, // -
 }
 
-impl<N> Node for Program<N> 
-    where N: Node,
-{
+// Infix operator. 
+#[derive(Eq, PartialEq, Debug)]
+pub enum Infix {
+    Eq,
+    NotEq,
+    LessThan,
+    GreaterThan,
+    Add,
+    Subtract,
+    Divide,
+    Multiply,
+}
+
+impl Node {
     fn token(&self) -> Token {
-        if self.statements.len() > 0 {
-            self.statements[0].token()
-        } else {
-            Token::Eof
+        Token::Illegal("".to_owned())
+    }
+}
+
+pub struct Program {
+    pub statements: Vec<Node>,
+}
+
+impl Program {
+    pub fn new(statements: Vec<Node>) -> Program {
+        Program {
+            statements,
         }
-    }
-}
-
-struct Let<E> {
-    name: Identifier,
-    value: E,
-}
-
-impl<E> Node for Let<E>
-    where E: Expression,
-{
-    fn token(&self) -> Token {
-        Token::Let
-    }
-}
-
-struct Identifier {
-    value: String,
-}
-
-impl Node for Identifier {
-    fn token(&self) -> Token {
-        Token::Ident(self.value.to_owned())
     }
 }
