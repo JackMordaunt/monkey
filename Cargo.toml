@@ -5,3 +5,4 @@ authors = ["Jack Mordaunt <jackmordaunt@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+whoami = "0.4.1"
