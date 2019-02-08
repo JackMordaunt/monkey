@@ -1,7 +1,7 @@
 use crate::token::Token;
 
 /// Node is an object that can exist in an AST.
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Node {
     // Placeholder just allows for a partialially constructed Node (for easier
     // development). Means I don't have to have all the parsing complete at once.
@@ -15,14 +15,14 @@ pub enum Node {
 }
 
 // Prefix operator. 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Prefix {
     Not, // !
     Negative, // -
 }
 
 // Infix operator. 
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Infix {
     Eq,
     NotEq,
