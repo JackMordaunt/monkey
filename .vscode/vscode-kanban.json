@@ -1,0 +1,60 @@
+{
+  "done": [
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Structure",
+      "creation_time": "2019-02-07T19:59:53.557Z",
+      "description": {
+        "content": "- Parsing requires mutability for maintaining state. \n- Parsing algorithm is split into small methods that require this mutability.\n- Rust does not allow multiple mutable borrows. \n",
+        "mime": "text/markdown"
+      },
+      "details": {
+        "content": "# Handle mutability in parser\n\n- Parsing requires mutability for maintaining state. \n- Parsing algorithm is split into small methods that require this mutability.\n- Rust does not allow multiple mutable borrows. \n\n## Options\n\n1. Use `Cell` for interior mutability. \n2. Restructure parser code to avoid requiring multiple mutable borrows.\n\t- For example, put all code inside one big method, and repeat small chunks of logic (no ideal).",
+        "mime": "text/markdown"
+      },
+      "id": "1",
+      "references": [],
+      "title": "Handle mutability in Parser",
+      "type": "bug"
+    }
+  ],
+  "in-progress": [
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Design",
+      "creation_time": "2019-02-08T17:55:07.282Z",
+      "description": {
+        "content": "Record parse errors such that they can be appropriately reported to the user. ",
+        "mime": "text/markdown"
+      },
+      "id": "3",
+      "references": [],
+      "title": "Recording Parse Errors"
+    }
+  ],
+  "testing": [],
+  "todo": [
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Parsing",
+      "creation_time": "2019-02-08T08:36:04.653Z",
+      "description": {
+        "content": "# Expression Parsing",
+        "mime": "text/markdown"
+      },
+      "details": {
+        "content": "# Expressions\n1. Produce a value\n2. Nestable\n3. Sometimes require an order of operations (infix/prefix)\n\n## Todo\n1. Remove instances of `Node::Placeholder` with appropriate expression parsing.\n2. Implement pratt parsing for infix and prefix operators.\n",
+        "mime": "text/markdown"
+      },
+      "id": "2",
+      "references": [],
+      "title": "Expression Parsing"
+    }
+  ]
+}
