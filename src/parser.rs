@@ -147,6 +147,7 @@ mod tests {
         let Program { statements } = parser.parse()
             .map_err(|err| format!("parsing: {}", err))
             .unwrap();
+
         assert_eq!(want.len(), statements.len());
         let diffs = diff(&want, &statements);
         if diffs.len() > 0 {
