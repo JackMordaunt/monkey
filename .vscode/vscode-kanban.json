@@ -23,17 +23,21 @@
   "in-progress": [
     {
       "assignedTo": {
-        "name": "Jack Mordaunt"
+        "name": "="
       },
-      "category": "Design",
-      "creation_time": "2019-02-08T17:55:07.282Z",
+      "category": "Parsing",
+      "creation_time": "2019-02-09T06:12:18.151Z",
       "description": {
-        "content": "Record parse errors such that they can be appropriately reported to the user. ",
+        "content": "- Make the token enum wrap structs for the dynamically sized token values. \n\n",
         "mime": "text/markdown"
       },
-      "id": "3",
+      "details": {
+        "content": "Currently there is no way to match on just the variant of a token without reference to the contained value. \nThis is painful since we don't always know, or care, what the value is.\nFor example an identifier is an unspecified string of arbitrary length. \n",
+        "mime": "text/markdown"
+      },
+      "id": "4",
       "references": [],
-      "title": "Recording Parse Errors"
+      "title": "Separate Token `kind` from Token `value`"
     }
   ],
   "testing": [],
@@ -55,6 +59,20 @@
       "id": "2",
       "references": [],
       "title": "Expression Parsing"
+    },
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Design",
+      "creation_time": "2019-02-08T17:55:07.282Z",
+      "description": {
+        "content": "Record parse errors such that they can be appropriately reported to the user. ",
+        "mime": "text/markdown"
+      },
+      "id": "3",
+      "references": [],
+      "title": "Recording Parse Errors"
     }
   ]
 }
