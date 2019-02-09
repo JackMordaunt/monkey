@@ -2,8 +2,9 @@ use crate::token::Token;
 use crate::ast::{Program, Node};
 
 use std::iter::Peekable;
-use std::error::Error;
+use std::error::Error as StdError;
 use std::cell::RefCell;
+use std::fmt;
 
 /// Parser transforms a stream of tokens into an AST for the monkey language.
 pub struct Parser<Lexer>
@@ -26,21 +27,33 @@ where
         }
     }
 
-    pub fn parse(&mut self) -> Result<Program, Box<dyn Error>> {
+    pub fn parse(&mut self) -> Result<Program, Box<dyn StdError>> {
         let mut nodes: Vec<Node> = vec![];
+        let mut errors: Vec<Box<dyn StdError>> = vec![];
         loop {
             self.advance();
             if self.token() == Token::Eof {
                 break;
             }
-            let node = self.parse_statement()
-                .map_err(|err| format!("statement: {}", err))?;
-            nodes.push(node);
+            match self.parse_statement() {
+                Ok(node) => nodes.push(node),
+                Err(err) => errors.push(err),
+            };
         }
-        Ok(Program::new(nodes))
+        if errors.len() > 0 {
+            let error = errors
+                .into_iter()
+                .fold(String::new(), |mut acc, err| {
+                    acc.extend(format!("\n{}", err).chars()); acc
+                })
+                .into();
+            Err(error)
+        } else {
+            Ok(Program::new(nodes))
+        }
     }
 
-    fn parse_statement(&mut self) -> Result<Node, Box<dyn Error>> {
+    fn parse_statement(&mut self) -> Result<Node, Box<dyn StdError>> {
         let node = match self.token() {
             Token::Let => self.parse_let_statement()?,
             _ => return Err("unimplemented token".into()),
@@ -48,16 +61,14 @@ where
         Ok(node)
     }
 
-    fn parse_let_statement(&mut self) -> Result<Node, Box<dyn Error>> {
-        let name = match self.peek() {
-            Some(Token::Ident(name)) => name,
-            _ => return Err("invalid let statement".into()),
+    fn parse_let_statement(&self) -> Result<Node, Box<dyn StdError>> {
+        let name = match self.peek(Token::Ident)? {
+            Token::Ident(name) => name,
         };
         self.advance();
         match self.peek() {
             Some(Token::Assign) => {},
-            Some(t) => return Err(format!("invalid let statement, expected {:?}, got {:?}", Token::Assign, t).into()),
-            None => return Err(format!("invalid let statement, expected {:?}, got {:?}", Token::Assign, Token::Eof).into()),
+            _ => return Err(Box::new(Error::Peek { want: Token::Assign, got: self.peek() })),
         };
         // Note: Skipping expression parsing for the moment.
         while self.token() != Token::Semicolon {
@@ -79,14 +90,39 @@ where
         self.token.borrow().clone()
     }
 
-    fn peek(&self) -> Option<Token> {
+    fn peek(&self, token: std::mem::Discriminant<Token>) -> Result<Token, Error> {
         let mut lexer = self.lexer.borrow_mut();
-        match lexer.peek() {
-            Some(token) => Some((*token).clone()),
-            None => None,
+        let peek = match lexer.peek() {
+            Some(peek) => peek,
+            None => return Err(Error::Peek { want: token, got: None }),
+        };
+        if std::mem::discriminant(peek) != token {
+            Err(Error::Peek { want: token, got: Some(peek.clone()) })
+        } else {
+            Ok(peek.clone())
         }
     }
 }
+
+#[derive(Debug)]
+enum Error {
+    Peek { want: std::mem::Discriminant<Token>, got: Option<Token> },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let msg = match self {
+            Error::Peek { want, got } => {
+                format!("want {:?}, got {:?}", want, got.clone().unwrap_or(Token::Eof))
+            }
+        };
+        write!(f, "{}", msg)
+    }
+}
+
+// Note: Since Display and Debug are implemented, all we need to do is "opt-in"
+// to implement trait `std::error::Error`.
+impl StdError for Error {}
 
 #[cfg(test)]
 mod tests {
@@ -116,5 +152,21 @@ mod tests {
         if diffs.len() > 0 {
             panic!("diff: {:?}", diff(&want, &statements));
         }
+    }
+
+    #[test]
+    fn error_out() {
+        let input: &'static str = r#"
+            let 123 what = 12!3;
+            let ;; ?;
+            let foo = whadya want??;
+        "#;
+        // let want = vec![
+
+        // ];
+        match Parser::new(Lexer::new(input.chars())).parse() {
+            Ok(_) => panic!("expect errors, got none"),
+            Err(err) => panic!("got error: {}", err),
+        };
     }
 }
