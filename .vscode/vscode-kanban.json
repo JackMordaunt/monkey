@@ -36,6 +36,20 @@
       "id": "4",
       "references": [],
       "title": "Separate Token `kind` from Token `value`"
+    },
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Design",
+      "creation_time": "2019-02-08T17:55:07.282Z",
+      "description": {
+        "content": "Record parse errors such that they can be appropriately reported to the user. ",
+        "mime": "text/markdown"
+      },
+      "id": "3",
+      "references": [],
+      "title": "Recording Parse Errors"
     }
   ],
   "in-progress": [],
@@ -58,20 +72,6 @@
       "id": "2",
       "references": [],
       "title": "Expression Parsing"
-    },
-    {
-      "assignedTo": {
-        "name": "Jack Mordaunt"
-      },
-      "category": "Design",
-      "creation_time": "2019-02-08T17:55:07.282Z",
-      "description": {
-        "content": "Record parse errors such that they can be appropriately reported to the user. ",
-        "mime": "text/markdown"
-      },
-      "id": "3",
-      "references": [],
-      "title": "Recording Parse Errors"
     }
   ]
 }

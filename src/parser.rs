@@ -1,9 +1,11 @@
 use crate::token::{Token, Kind};
 use crate::ast::{Program, Node};
+use crate::util::MultiError;
 
 use std::iter::Peekable;
-use std::error::Error;
 use std::cell::RefCell;
+
+type Error = Box<dyn std::error::Error>;
 
 /// Parser transforms a stream of tokens into an AST for the monkey language.
 pub struct Parser<Lexer>
@@ -24,44 +26,51 @@ impl<Lexer> Parser<Lexer>
         }
     }
 
-    pub fn parse(&mut self) -> Result<Program, Box<dyn Error>> {
+    pub fn parse(&mut self) -> Result<Program, Error> {
         let mut nodes: Vec<Node> = vec![];
+        let mut errors: MultiError = MultiError::new();
         loop {
             self.advance();
             if self.token().kind == Kind::Eof {
                 break;
             }
-            let node = self.parse_statement()
-                .map_err(|err| format!("statement: {}", err))?;
-            nodes.push(node);
+            match self.parse_statement() {
+                Ok(node) => nodes.push(node),
+                Err(err) => errors.push(err),
+            }
         }
-        Ok(Program::new(nodes))
+        if errors.len() > 0 {
+            Err(Box::new(errors))
+        } else {
+            Ok(Program::new(nodes))
+        }
     }
 
-    fn parse_statement(&mut self) -> Result<Node, Box<dyn Error>> {
+    fn parse_statement(&mut self) -> Result<Node, Error> {
         let node = match self.token().kind {
-            Kind::Let => self.parse_let_statement()?,
+            Kind::Let => self.parse_let_statement()
+                .map_err(|err| format!("parsing 'let' statement: {}", err))?,
+            Kind::Return => self.parse_return_statement()
+                .map_err(|err| format!("parsing 'return' statement: {}", err))?,
             _ => return Err("unimplemented token".into()),
         };
         Ok(node)
     }
 
-    fn parse_let_statement(&mut self) -> Result<Node, Box<dyn Error>> {
-        let name = match self.peek() {
-            Some(Token { kind: Kind::Ident, literal }) => literal,
-            _ => return Err("invalid let statement".into()),
-        };
+    fn parse_let_statement(&mut self) -> Result<Node, Error> {
+        let name = self.peek(Kind::Ident)?.literal;
         self.advance();
-        match self.peek() {
-            Some(Token {kind: Kind::Assign, ..}) => {},
-            Some(t) => return Err(format!("invalid let statement, expected {:?}, got {:?}", Kind::Assign, t).into()),
-            None => return Err(format!("invalid let statement, expected {:?}, got {:?}", Kind::Assign, Kind::Eof).into()),
-        };
+        self.peek(Kind::Assign)?;
         // Note: Skipping expression parsing for the moment.
         while self.token().kind != Kind::Semicolon {
             self.advance();
         }
         Ok(Node::Let{name: name, value: Box::new(Node::Placeholder)})
+    }
+
+    fn parse_return_statement(&mut self) -> Result<Node, Error> {
+
+        Err("oof".into())
     }
 
     fn advance(&self) {
@@ -77,11 +86,17 @@ impl<Lexer> Parser<Lexer>
         self.token.borrow().clone()
     }
 
-    fn peek(&self) -> Option<Token> {
+    fn peek(&self, kind: Kind) -> Result<Token, Error> {
         let mut lexer = self.lexer.borrow_mut();
         match lexer.peek() {
-            Some(token) => Some((*token).clone()),
-            None => None,
+            Some(t) => {
+                if t.kind == kind {
+                    Ok((*t).clone())
+                } else {
+                    Err(format!("expected {:?}, got {:?}", kind, t.kind).into())
+                }
+            },
+            None => Err(format!("expected {:?}, got {:?}", kind, Kind::Eof).into()),
         }
     }
 }
