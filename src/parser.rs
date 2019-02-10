@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::token::{Token, Kind};
 use crate::ast::{Program, Node};
 
 use std::iter::Peekable;
@@ -7,22 +7,20 @@ use std::cell::RefCell;
 
 /// Parser transforms a stream of tokens into an AST for the monkey language.
 pub struct Parser<Lexer>
-where
-    Lexer: Iterator<Item=Token>,
+    where Lexer: Iterator<Item=Token>,
 {
     lexer: RefCell<Peekable<Lexer>>,
     token: RefCell<Token>,
 }
 
 impl<Lexer> Parser<Lexer>
-where
-    Lexer: Iterator<Item=Token>,
+    where Lexer: Iterator<Item=Token>,
 {
     // new constructs a parser. 
     pub fn new(lexer: Lexer) -> Parser<Lexer> {
         Parser {
             lexer: RefCell::new(lexer.peekable()),
-            token: RefCell::new(Token::Illegal("".to_owned())),
+            token: RefCell::new(Token::new(Kind::Illegal, "")),
         }
     }
 
@@ -30,7 +28,7 @@ where
         let mut nodes: Vec<Node> = vec![];
         loop {
             self.advance();
-            if self.token() == Token::Eof {
+            if self.token().kind == Kind::Eof {
                 break;
             }
             let node = self.parse_statement()
@@ -41,8 +39,8 @@ where
     }
 
     fn parse_statement(&mut self) -> Result<Node, Box<dyn Error>> {
-        let node = match self.token() {
-            Token::Let => self.parse_let_statement()?,
+        let node = match self.token().kind {
+            Kind::Let => self.parse_let_statement()?,
             _ => return Err("unimplemented token".into()),
         };
         Ok(node)
@@ -50,20 +48,20 @@ where
 
     fn parse_let_statement(&mut self) -> Result<Node, Box<dyn Error>> {
         let name = match self.peek() {
-            Some(Token::Ident(name)) => name,
+            Some(Token { kind: Kind::Ident, literal }) => literal,
             _ => return Err("invalid let statement".into()),
         };
         self.advance();
         match self.peek() {
-            Some(Token::Assign) => {},
-            Some(t) => return Err(format!("invalid let statement, expected {:?}, got {:?}", Token::Assign, t).into()),
-            None => return Err(format!("invalid let statement, expected {:?}, got {:?}", Token::Assign, Token::Eof).into()),
+            Some(Token {kind: Kind::Assign, ..}) => {},
+            Some(t) => return Err(format!("invalid let statement, expected {:?}, got {:?}", Kind::Assign, t).into()),
+            None => return Err(format!("invalid let statement, expected {:?}, got {:?}", Kind::Assign, Kind::Eof).into()),
         };
         // Note: Skipping expression parsing for the moment.
-        while self.token() != Token::Semicolon {
+        while self.token().kind != Kind::Semicolon {
             self.advance();
         }
-        Ok(Node::Let{name: name.to_owned(), value: Box::new(Node::Placeholder)})
+        Ok(Node::Let{name: name, value: Box::new(Node::Placeholder)})
     }
 
     fn advance(&self) {
@@ -71,7 +69,7 @@ where
         let mut lexer = self.lexer.borrow_mut();
         *token = match lexer.next() {
             Some(token) => token,
-            None => Token::Eof,
+            None => Token::new(Kind::Eof, "\0"),
         };
     }
 

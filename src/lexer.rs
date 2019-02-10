@@ -1,25 +1,25 @@
 #![allow(dead_code)]
-use crate::token::Token;
+use crate::token::{Token, Kind};
 
 use std::iter::Peekable;
 
 impl Token {
     /// ident constructs the appropriate Token for the given multi-character
     /// word. 
-    fn ident(word: &str) -> Token {
-        match word {
-            "fn" => Token::Function,
-            "let" => Token::Let,
-            "return" => Token::Return,
-            "if" => Token::If,
-            "else" => Token::Else,
-            "true" => Token::Bool(true),
-            "false" => Token::Bool(false),
+    fn ident(word: String) -> Token {
+        match &word as &str {
+            "fn" => Token::new(Kind::Function, word),
+            "let" => Token::new(Kind::Let, word),
+            "return" => Token::new(Kind::Return, word),
+            "if" => Token::new(Kind::If, word),
+            "else" => Token::new(Kind::Else, word),
+            "true" => Token::new(Kind::Bool, word),
+            "false" => Token::new(Kind::Bool, word),
             word if word.parse::<i32>().is_ok() => {
-                Token::Int(word.parse().unwrap())
+                Token::new(Kind::Int, word)
             }
             _ => {
-                Token::Ident(word.to_owned())
+                Token::new(Kind::Ident, word)
             }
         }
     }
@@ -49,19 +49,19 @@ impl<I> Lexer<I>
         loop {
             let ch = match self.input.peek() {
                 Some(ch) => ch,
-                None => return Token::Eof,
+                None => return Token::new(Kind::Eof, "\0"),
             }; 
             if predicate(ch) {
                 self.ch = match self.input.next() {
                     Some(ch) => ch,
-                    None => return Token::Eof,
+                    None => return Token::new(Kind::Eof, "\0"),
                 };
                 ident.push(self.ch);
             } else {
                 break;
             }
         }
-        Token::ident(&ident)
+        Token::ident(ident)
     }
 
     fn eat_space(&mut self) {
@@ -87,30 +87,30 @@ impl<I> Iterator for Lexer<I>
         self.advance();
         self.eat_space();
         let tok = match self.ch {
-            '+' => Token::Plus,
-            '(' => Token::LeftParen,
-            ')' => Token::RightParen,
-            '{' => Token::LeftBrace,
-            '}' => Token::RightBrace,
-            ',' => Token::Comma,
-            ';' => Token::Semicolon,
-            '-' => Token::Minus,
-            '/' => Token::Slash,
-            '<' => Token::ArrowLeft,
-            '>' => Token::ArrowRight,
-            '*' => Token::Asterisk,
+            '+' => Token::new(Kind::Plus, "+"),
+            '(' => Token::new(Kind::LeftParen, "("),
+            ')' => Token::new(Kind::RightParen, ")"),
+            '{' => Token::new(Kind::LeftBrace, "{"),
+            '}' => Token::new(Kind::RightBrace, "}"),
+            ',' => Token::new(Kind::Comma, ","),
+            ';' => Token::new(Kind::Semicolon, ";"),
+            '-' => Token::new(Kind::Minus, "-"),
+            '/' => Token::new(Kind::Slash, "/"),
+            '<' => Token::new(Kind::ArrowLeft, "<"),
+            '>' => Token::new(Kind::ArrowRight, ">"),
+            '*' => Token::new(Kind::Asterisk, "*"),
             '\0' => return None,
             '=' => {
                 match self.input.peek() {
                     Some(next) => {
                         if next == &'=' {
                             self.advance();
-                            Token::Equal
+                            Token::new(Kind::Equal, "==")
                         } else {
-                            Token::Assign
+                            Token::new(Kind::Assign, "=")
                         }
                     }
-                    None => Token::Assign
+                    None => Token::new(Kind::Assign, "=")
                 }
             },
             '!' => {
@@ -118,12 +118,12 @@ impl<I> Iterator for Lexer<I>
                     Some(next) => {
                         if next == &'=' {
                             self.advance();
-                            Token::NotEqual
+                            Token::new(Kind::NotEqual, "!=")
                         } else {
-                            Token::Bang
+                            Token::new(Kind::Bang, "!")
                         }
                     }
-                    None => Token::Bang
+                    None => Token::new(Kind::Bang, "!")
                 }
             },
             _ => {
@@ -132,7 +132,7 @@ impl<I> Iterator for Lexer<I>
                 } else if self.ch.is_numeric() {
                     self.read(|c: &char| c.is_numeric())
                 } else {
-                    Token::Illegal(self.ch.to_string())
+                    Token::new(Kind::Illegal, self.ch.to_string())
                 }
             }
         };
@@ -171,88 +171,88 @@ mod tests {
             5 != 10;
         "#;
         let want = vec![
-            Token::Let,
-            Token::Ident("five".to_owned()),
-            Token::Assign,
-            Token::Int(5),
-            Token::Semicolon,
+            Token::new(Kind::Let, "let"),
+            Token::new(Kind::Ident, "five"),
+            Token::new(Kind::Assign, "="),
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Let,
-            Token::Ident("ten".to_owned()),
-            Token::Assign,
-            Token::Int(10),
-            Token::Semicolon,
+            Token::new(Kind::Let, "let"),
+            Token::new(Kind::Ident, "ten"),
+            Token::new(Kind::Assign, "="),
+            Token::new(Kind::Int, "10"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Let,
-            Token::Ident("add".to_owned()),
-            Token::Assign,
-            Token::Function,
-            Token::LeftParen,
-            Token::Ident("a".to_owned()),
-            Token::Comma,
-            Token::Ident("b".to_owned()),
-            Token::RightParen,
-            Token::LeftBrace,
-            Token::Return,
-            Token::Ident("a".to_owned()), 
-            Token::Plus,
-            Token::Ident("b".to_owned()),
-            Token::Semicolon,
-            Token::RightBrace,
-            Token::Semicolon,
+            Token::new(Kind::Let, "let"),
+            Token::new(Kind::Ident, "add"),
+            Token::new(Kind::Assign, "="),
+            Token::new(Kind::Function, "fn"),
+            Token::new(Kind::LeftParen, "("),
+            Token::new(Kind::Ident, "a"),
+            Token::new(Kind::Comma, ","),
+            Token::new(Kind::Ident, "b"),
+            Token::new(Kind::RightParen, ")"),
+            Token::new(Kind::LeftBrace, "{"),
+            Token::new(Kind::Return, "return"),
+            Token::new(Kind::Ident, "a"),
+            Token::new(Kind::Plus, "+"),
+            Token::new(Kind::Ident, "b"),
+            Token::new(Kind::Semicolon, ";"),
+            Token::new(Kind::RightBrace, "}"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Let,
-            Token::Ident("result".to_owned()),
-            Token::Assign,
-            Token::Ident("add".to_owned()),
-            Token::LeftParen,
-            Token::Ident("five".to_owned()),
-            Token::Comma,
-            Token::Ident("ten".to_owned()),
-            Token::RightParen,
-            Token::Semicolon,
+            Token::new(Kind::Let, "let"),
+            Token::new(Kind::Ident, "result"),
+            Token::new(Kind::Assign, "="),
+            Token::new(Kind::Ident, "add"),
+            Token::new(Kind::LeftParen, "("),
+            Token::new(Kind::Ident, "five"),
+            Token::new(Kind::Comma, ","),
+            Token::new(Kind::Ident, "ten"),
+            Token::new(Kind::RightParen, ")"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Bang,
-            Token::Minus,
-            Token::Slash,
-            Token::Asterisk,
-            Token::Int(5),
-            Token::Semicolon,
+            Token::new(Kind::Bang, "!"),
+            Token::new(Kind::Minus, "-"),
+            Token::new(Kind::Slash, "/"),
+            Token::new(Kind::Asterisk, "*"),
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Int(5),
-            Token::ArrowLeft,
-            Token::Int(10),
-            Token::ArrowRight,
-            Token::Int(5),
-            Token::Semicolon,
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::ArrowLeft, "<"),
+            Token::new(Kind::Int, "10"),
+            Token::new(Kind::ArrowRight, ">"),
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::If,
-            Token::LeftParen,
-            Token::Int(5),
-            Token::ArrowLeft,
-            Token::Int(10),
-            Token::RightParen,
-            Token::LeftBrace,
-            Token::Return,
-            Token::Bool(true),
-            Token::Semicolon,
-            Token::RightBrace,
-            Token::Else,
-            Token::LeftBrace,
-            Token::Return,
-            Token::Bool(false),
-            Token::Semicolon,
-            Token::RightBrace,
+            Token::new(Kind::If, "if"),
+            Token::new(Kind::LeftParen, "("),
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::ArrowLeft, "<"),
+            Token::new(Kind::Int, "10"),
+            Token::new(Kind::RightParen, ")"),
+            Token::new(Kind::LeftBrace, "{"),
+            Token::new(Kind::Return, "return"),
+            Token::new(Kind::Bool, "true"),
+            Token::new(Kind::Semicolon, ";"),
+            Token::new(Kind::RightBrace, "}"),
+            Token::new(Kind::Else, "else"),
+            Token::new(Kind::LeftBrace, "{"),
+            Token::new(Kind::Return, "return"),
+            Token::new(Kind::Bool, "false"),
+            Token::new(Kind::Semicolon, ";"),
+            Token::new(Kind::RightBrace, "}"),
 
-            Token::Int(5),
-            Token::Equal,
-            Token::Int(5),
-            Token::Semicolon,
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::Equal, "=="),
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::Semicolon, ";"),
 
-            Token::Int(5),
-            Token::NotEqual,
-            Token::Int(10),
-            Token::Semicolon,
+            Token::new(Kind::Int, "5"),
+            Token::new(Kind::NotEqual, "!="),
+            Token::new(Kind::Int, "10"),
+            Token::new(Kind::Semicolon, ";"),
         ];
         let got: Vec<Token> = Lexer::new(input.chars()).collect();
         if want.len() != got.len() {

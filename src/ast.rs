@@ -1,4 +1,4 @@
-use crate::token::Token;
+use crate::token::{Token, Kind};
 
 /// Node is an object that can exist in an AST.
 #[derive(Eq, PartialEq, Debug, Clone)]
@@ -36,7 +36,7 @@ pub enum Infix {
 
 impl Node {
     fn token(&self) -> Token {
-        Token::Illegal("".to_owned())
+        Token::new(Kind::Illegal, "")
     }
 }
 
