@@ -18,9 +18,7 @@
       "references": [],
       "title": "Handle mutability in Parser",
       "type": "bug"
-    }
-  ],
-  "in-progress": [
+    },
     {
       "assignedTo": {
         "name": "="
@@ -40,6 +38,7 @@
       "title": "Separate Token `kind` from Token `value`"
     }
   ],
+  "in-progress": [],
   "testing": [],
   "todo": [
     {
