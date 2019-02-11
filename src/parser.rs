@@ -1,5 +1,5 @@
 use crate::token::{Token, Kind};
-use crate::ast::{Program, Node, Precedence, Prefix};
+use crate::ast::{Program, Node, Precedence, Prefix, Infix};
 use crate::util::MultiError;
 
 use std::iter::Peekable;
@@ -65,9 +65,9 @@ impl<Lexer> Parser<Lexer>
     }
 
     fn parse_let_statement(&mut self) -> Result<Node, Error> {
-        let name = self.peek(Kind::Ident)?.literal;
+        let name = self.expect(Kind::Ident)?.literal;
         self.advance();
-        self.peek(Kind::Assign)?;
+        self.expect(Kind::Assign)?;
         // Note: Skipping expression parsing for the moment.
         while self.token().kind != Kind::Semicolon {
             self.advance();
@@ -85,14 +85,19 @@ impl<Lexer> Parser<Lexer>
 
     fn parse_expression_statement(&mut self) -> Result<Node, Error> {
         let exp = self.parse_expression(Precedence::Lowest)?;
-        if self.peek(Kind::Semicolon).is_ok() {
+        if self.expect(Kind::Semicolon).is_ok() {
             self.advance();
         }
         Ok(exp)
     }
 
     fn parse_expression(&mut self, p: Precedence) -> Result<Node, Error> {
-        self.parse_prefix()
+        let mut left = self.parse_prefix()?;
+        while !self.expect(Kind::Semicolon).is_ok() && p <= Precedence::from(self.peek()?.kind) {
+            self.advance();
+            left = self.parse_infix(left)?;
+        }
+        Ok(left)
     }
 
     fn parse_prefix(&mut self) -> Result<Node, Error> {
@@ -127,6 +132,80 @@ impl<Lexer> Parser<Lexer>
         Ok(node)
     }
 
+    fn parse_infix(&mut self, left: Node) -> Result<Node, Error> {
+        let token = self.token();
+        let node = match token.kind {
+            Kind::Plus => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::Add,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::Minus => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::Subtract,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::Slash => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::Divide,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::Asterisk => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::Multiply,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::Equal => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::Eq,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::NotEqual => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::NotEq,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::ArrowLeft => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::LessThan,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            Kind::ArrowRight => {
+                self.advance();
+                Node::Infix {
+                    left: Box::new(left),
+                    operator: Infix::GreaterThan,
+                    right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
+                }
+            }
+            _ => {
+                return Err(format!("infix: unimplemented for {:?}", token).into());
+            }
+        };
+        Ok(node)
+    }
+
     fn advance(&self) {
         let mut token = self.token.borrow_mut();
         let mut lexer = self.lexer.borrow_mut();
@@ -140,7 +219,7 @@ impl<Lexer> Parser<Lexer>
         self.token.borrow().clone()
     }
 
-    fn peek(&self, kind: Kind) -> Result<Token, Error> {
+    fn expect(&self, kind: Kind) -> Result<Token, Error> {
         let mut lexer = self.lexer.borrow_mut();
         match lexer.peek() {
             Some(t) => {
@@ -153,6 +232,15 @@ impl<Lexer> Parser<Lexer>
             None => Err(format!("expected {:?}, got {:?}", kind, Kind::Eof).into()),
         }
     }
+
+    fn peek(&self) -> Result<Token, Error> {
+        let mut lexer = self.lexer.borrow_mut();
+        match lexer.peek() {
+            Some(t) => Ok((*t).clone()),
+            None => Err(format!("unexpected EOF").into()),
+        }
+    }
+
 }
 
 #[cfg(test)]
@@ -260,4 +348,74 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn infix() {
+        let input: &'static str = r#"
+            5 + 5;
+            5 - 5;
+            5 * 5;
+            5 / 5;
+            5 > 5;
+            5 < 5;
+            5 == 5;
+            5 != 5;
+        "#;
+        let want = vec![
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::Add,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::Subtract,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::Multiply,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::Divide,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::GreaterThan,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::LessThan,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::Eq,
+                right: Box::new(Node::Int(5)),
+            },
+            Node::Infix {
+                left: Box::new(Node::Int(5)),
+                operator: Infix::NotEq,
+                right: Box::new(Node::Int(5)),
+            },
+        ];
+        let mut parser = Parser::new(Lexer::new(input.chars()));
+        match parser.parse() {
+            Ok(Program { statements }) => {
+                assert_eq!(want.len(), statements.len());
+                let diffs = diff(&want, &statements);
+                if diffs.len() > 0 {
+                    panic!("diff: {:?}", diff(&want, &statements));
+                }
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
+    }
+    
 }

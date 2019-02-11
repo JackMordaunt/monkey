@@ -37,7 +37,7 @@ pub enum Infix {
     Multiply,
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Eq, PartialEq, Debug, Clone, PartialOrd)]
 pub enum Precedence {
     Lowest,
     Equals,
@@ -46,6 +46,18 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
+}
+
+impl Precedence {
+    pub fn from(token: Kind) -> Precedence {
+        match token {
+            Kind::Equal | Kind::NotEqual => Precedence::Equals,
+            Kind::ArrowLeft | Kind::ArrowRight => Precedence::LessGreater,
+            Kind::Plus | Kind::Minus => Precedence::Sum,
+            Kind::Slash | Kind::Assign => Precedence::Product,
+            _ => Precedence::Lowest,
+        }
+    }
 }
 
 impl Node {
