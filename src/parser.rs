@@ -1,5 +1,5 @@
 use crate::token::{Token, Kind};
-use crate::ast::{Program, Node};
+use crate::ast::{Program, Node, Precedence};
 use crate::util::MultiError;
 
 use std::iter::Peekable;
@@ -57,7 +57,8 @@ impl<Lexer> Parser<Lexer>
                     .map_err(|err| format!("'return' statement: {}", err))?
             },
             _ => {
-                return Err(format!("unimplemented token: {:?}", self.token()).into())
+                self.parse_expression_statement()
+                    .map_err(|err| format!("expression statement: {}", err))?
             },
         };
         Ok(node)
@@ -80,6 +81,34 @@ impl<Lexer> Parser<Lexer>
             self.advance();
         }
         Ok(Node::Return { value: Box::new(Node::Placeholder) })
+    }
+
+    fn parse_expression_statement(&mut self) -> Result<Node, Error> {
+        let exp = self.parse_expression(Precedence::Lowest)?;
+        if self.peek(Kind::Semicolon).is_ok() {
+            self.advance();
+        }
+        Ok(exp)
+    }
+
+    fn parse_expression(&mut self, p: Precedence) -> Result<Node, Error> {
+        self.parse_prefix()
+    }
+
+    fn parse_prefix(&mut self) -> Result<Node, Error> {
+        let token = self.token();
+        let node = match token.kind {
+            Kind::Ident => {
+                Node::Identifier { value: token.literal }
+            }
+            Kind::Int => {
+                Node::Int(token.literal.parse()?)
+            }
+            _ => {
+                return Err(format!("prefix: unimplemented: {:?}", token).into());
+            }
+        };
+        Ok(node)
     }
 
     fn advance(&self) {
@@ -165,6 +194,30 @@ mod tests {
                 panic!("{}", err);
             }
         }
-        
+    }
+
+    #[test]
+    fn expressions() {
+        let input: &'static str = r#"
+            foo;
+            5;
+        "#;
+        let want = vec![
+            Node::Identifier { value: "foo".to_owned() },
+            Node::Int(5),
+        ];
+        let mut parser = Parser::new(Lexer::new(input.chars()));
+        match parser.parse() {
+            Ok(Program { statements }) => {
+                assert_eq!(want.len(), statements.len());
+                let diffs = diff(&want, &statements);
+                if diffs.len() > 0 {
+                    panic!("diff: {:?}", diff(&want, &statements));
+                }
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
     }
 }
