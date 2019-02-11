@@ -45,7 +45,14 @@ impl MultiError {
 
 impl Display for MultiError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "[\n")?;
+        for (ii, err) in self.0.iter().enumerate() {
+            write!(f, "\t{}\n", err)?;
+            if ii < self.0.len() -1 {
+                write!(f, ",")?;
+            }
+        }
+        write!(f, "]")
     }
 }
 
