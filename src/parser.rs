@@ -48,11 +48,17 @@ impl<Lexer> Parser<Lexer>
 
     fn parse_statement(&mut self) -> Result<Node, Error> {
         let node = match self.token().kind {
-            Kind::Let => self.parse_let_statement()
-                .map_err(|err| format!("parsing 'let' statement: {}", err))?,
-            Kind::Return => self.parse_return_statement()
-                .map_err(|err| format!("parsing 'return' statement: {}", err))?,
-            _ => return Err("unimplemented token".into()),
+            Kind::Let => {
+                self.parse_let_statement()
+                    .map_err(|err| format!("'let' statement: {}", err))?
+            },
+            Kind::Return => {
+                self.parse_return_statement()
+                    .map_err(|err| format!("'return' statement: {}", err))?
+            },
+            _ => {
+                return Err(format!("unimplemented token: {:?}", self.token()).into())
+            },
         };
         Ok(node)
     }
@@ -69,8 +75,11 @@ impl<Lexer> Parser<Lexer>
     }
 
     fn parse_return_statement(&mut self) -> Result<Node, Error> {
-
-        Err("oof".into())
+        self.advance();
+        while self.token().kind != Kind::Semicolon {
+            self.advance();
+        }
+        Ok(Node::Return { value: Box::new(Node::Placeholder) })
     }
 
     fn advance(&self) {
@@ -124,11 +133,38 @@ mod tests {
         let Program { statements } = parser.parse()
             .map_err(|err| format!("parsing: {}", err))
             .unwrap();
-
         assert_eq!(want.len(), statements.len());
         let diffs = diff(&want, &statements);
         if diffs.len() > 0 {
             panic!("diff: {:?}", diff(&want, &statements));
         }
+    }
+
+    #[test]
+    fn return_statement() {
+        let input: &'static str = r#"
+            return a + b;
+            return 10;
+            return "oof";
+        "#;
+        let want = vec![
+            Node::Return { value: Box::new(Node::Placeholder) },
+            Node::Return { value: Box::new(Node::Placeholder) },
+            Node::Return { value: Box::new(Node::Placeholder) },
+        ];
+        let mut parser = Parser::new(Lexer::new(input.chars()));
+        match parser.parse() {
+            Ok(Program { statements }) => {
+                assert_eq!(want.len(), statements.len());
+                let diffs = diff(&want, &statements);
+                if diffs.len() > 0 {
+                    panic!("diff: {:?}", diff(&want, &statements));
+                }
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
+        
     }
 }
