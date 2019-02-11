@@ -1,5 +1,5 @@
 use crate::token::{Token, Kind};
-use crate::ast::{Program, Node, Precedence};
+use crate::ast::{Program, Node, Precedence, Prefix};
 use crate::util::MultiError;
 
 use std::iter::Peekable;
@@ -99,10 +99,26 @@ impl<Lexer> Parser<Lexer>
         let token = self.token();
         let node = match token.kind {
             Kind::Ident => {
-                Node::Identifier { value: token.literal }
+                Node::Identifier {
+                    value: token.literal,
+                }
             }
             Kind::Int => {
                 Node::Int(token.literal.parse()?)
+            }
+            Kind::Bang => {
+                self.advance();
+                Node::Prefix {
+                    operator: Prefix::Not,
+                    value: Box::new(self.parse_expression(Precedence::Prefix)?),
+                }
+            }
+            Kind::Minus => {
+                self.advance();
+                Node::Prefix {
+                    operator: Prefix::Negative,
+                    value: Box::new(self.parse_expression(Precedence::Prefix)?),
+                }
             }
             _ => {
                 return Err(format!("prefix: unimplemented: {:?}", token).into());
@@ -143,7 +159,6 @@ impl<Lexer> Parser<Lexer>
 mod tests {
     use super::*;
     use crate::lexer::Lexer;
-    use crate::ast::Node;
     use crate::util::diff;
 
     #[test]
@@ -205,6 +220,31 @@ mod tests {
         let want = vec![
             Node::Identifier { value: "foo".to_owned() },
             Node::Int(5),
+        ];
+        let mut parser = Parser::new(Lexer::new(input.chars()));
+        match parser.parse() {
+            Ok(Program { statements }) => {
+                assert_eq!(want.len(), statements.len());
+                let diffs = diff(&want, &statements);
+                if diffs.len() > 0 {
+                    panic!("diff: {:?}", diff(&want, &statements));
+                }
+            }
+            Err(err) => {
+                panic!("{}", err);
+            }
+        }
+    }
+
+    #[test]
+    fn prefix() {
+        let input: &'static str = r#"
+            !foo;
+            -5;
+        "#;
+        let want = vec![
+            Node::Prefix { operator: Prefix::Not, value: Box::new(Node::Identifier { value: "foo".to_owned() } ) },
+            Node::Prefix { operator: Prefix::Negative, value: Box::new(Node::Int(5)) },
         ];
         let mut parser = Parser::new(Lexer::new(input.chars()));
         match parser.parse() {

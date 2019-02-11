@@ -13,7 +13,7 @@ pub enum Node {
     Let { name: String, value: Box<Node> },
     Return { value: Box<Node> },
     If { predicate: Box<Node>, success: Box<Node>, fail: Option<Box<Node>> },
-    Prefix { operator: Prefix, right: Box<Node> },
+    Prefix { operator: Prefix, value: Box<Node> },
     Infix { left: Box<Node>, operator: Infix, right: Box<Node> },
 }
 
