@@ -9,6 +9,7 @@ pub enum Node {
     Placeholder,
     Int(i64),
     String(String),
+    Boolean(bool),
     Expression { precedence: Precedence, value: Box<Node> },
     Identifier { value: String },
     Let { name: String, value: Box<Node> },
@@ -96,6 +97,7 @@ impl Display for Node {
             Node::Infix { left, operator, right } => format!("({} {} {})", left, operator, right),
             Node::Int(n) => n.to_string(),
             Node::String(s) => s.to_owned(),
+            Node::Boolean(b) => b.to_string(),
             Node::Identifier { value } => value.to_owned(),
             _ => format!("na"),
         })

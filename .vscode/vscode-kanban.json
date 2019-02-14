@@ -23,6 +23,24 @@
       "assignedTo": {
         "name": "Jack Mordaunt"
       },
+      "category": "Parsing",
+      "creation_time": "2019-02-08T08:36:04.653Z",
+      "description": {
+        "content": "# Expression Parsing",
+        "mime": "text/markdown"
+      },
+      "details": {
+        "content": "# Expressions\n1. Produce a value\n2. Nestable\n3. Sometimes require an order of operations (infix/prefix)\n\n## Todo\n1. Remove instances of `Node::Placeholder` with appropriate expression parsing.\n2. Implement pratt parsing for infix and prefix operators.\n",
+        "mime": "text/markdown"
+      },
+      "id": "2",
+      "references": [],
+      "title": "Expression Parsing"
+    },
+    {
+      "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
       "category": "Design",
       "creation_time": "2019-02-08T17:55:07.282Z",
       "description": {
@@ -56,18 +74,10 @@
         "name": "Jack Mordaunt"
       },
       "category": "Parsing",
-      "creation_time": "2019-02-08T08:36:04.653Z",
-      "description": {
-        "content": "# Expression Parsing",
-        "mime": "text/markdown"
-      },
-      "details": {
-        "content": "# Expressions\n1. Produce a value\n2. Nestable\n3. Sometimes require an order of operations (infix/prefix)\n\n## Todo\n1. Remove instances of `Node::Placeholder` with appropriate expression parsing.\n2. Implement pratt parsing for infix and prefix operators.\n",
-        "mime": "text/markdown"
-      },
-      "id": "2",
+      "creation_time": "2019-02-14T19:27:10.159Z",
+      "id": "5",
       "references": [],
-      "title": "Expression Parsing"
+      "title": "Parse Booleans"
     }
   ],
   "in-progress": [],

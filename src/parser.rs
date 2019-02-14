@@ -111,6 +111,9 @@ impl<Lexer> Parser<Lexer>
             Kind::Int => {
                 Node::Int(token.literal.parse()?)
             }
+            Kind::Bool => {
+                Node::Boolean(token.literal.parse()?)
+            }
             Kind::Bang => {
                 self.advance();
                 Node::Prefix {
@@ -329,10 +332,14 @@ mod tests {
         let input: &'static str = r#"
             !foo;
             -5;
+            !true;
+            !false;
         "#;
         let want = vec![
             Node::Prefix { operator: Prefix::Not, value: Box::new(Node::Identifier { value: "foo".to_owned() } ) },
             Node::Prefix { operator: Prefix::Negative, value: Box::new(Node::Int(5)) },
+            Node::Prefix { operator: Prefix::Not, value: Box::new(Node::Boolean(true)) },
+            Node::Prefix { operator: Prefix::Not, value: Box::new(Node::Boolean(false)) },
         ];
         let mut parser = Parser::new(Lexer::new(input.chars()));
         match parser.parse() {
@@ -350,72 +357,109 @@ mod tests {
     }
 
     #[test]
-    fn infix() {
-        let input: &'static str = r#"
-            5 + 5;
-            5 - 5;
-            5 * 5;
-            5 / 5;
-            5 > 5;
-            5 < 5;
-            5 == 5;
-            5 != 5;
-        "#;
-        let want = vec![
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::Add,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::Subtract,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::Multiply,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::Divide,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::GreaterThan,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::LessThan,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::Eq,
-                right: Box::new(Node::Int(5)),
-            },
-            Node::Infix {
-                left: Box::new(Node::Int(5)),
-                operator: Infix::NotEq,
-                right: Box::new(Node::Int(5)),
-            },
+    fn infix() -> Result<(), Error> {
+        let tests = vec![
+            (
+                "5 + 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::Add,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 - 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::Subtract,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 * 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::Multiply,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 / 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::Divide,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 > 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::GreaterThan,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 < 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::LessThan,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 == 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::Eq,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "5 != 5;",
+                Node::Infix {
+                    left: Box::new(Node::Int(5)),
+                    operator: Infix::NotEq,
+                    right: Box::new(Node::Int(5)),
+                },
+            ),
+            (
+                "true != false;",
+                Node::Infix {
+                    left: Box::new(Node::Boolean(true)),
+                    operator: Infix::NotEq,
+                    right: Box::new(Node::Boolean(false)),
+                },
+            ),
+            (
+                "true == true;",
+                Node::Infix {
+                    left: Box::new(Node::Boolean(true)),
+                    operator: Infix::Eq,
+                    right: Box::new(Node::Boolean(true)),
+                },
+            ),
+            (
+                "false == false;",
+                Node::Infix {
+                    left: Box::new(Node::Boolean(false)),
+                    operator: Infix::Eq,
+                    right: Box::new(Node::Boolean(false)),
+                },
+            ),
         ];
-        let mut parser = Parser::new(Lexer::new(input.chars()));
-        match parser.parse() {
-            Ok(Program { statements }) => {
-                assert_eq!(want.len(), statements.len());
-                let diffs = diff(&want, &statements);
-                if diffs.len() > 0 {
-                    panic!("diff: {:?}", diff(&want, &statements));
-                }
+        for (ii, test) in tests.iter().enumerate() {
+            let Program { statements } = Parser::new(Lexer::new(test.0.chars())).parse()
+                .map_err(|err| format!("{}: {}", ii, err))?;
+            if statements.len() != 1 {
+                panic!("wrong number of statements: want 1, got {}", statements.len());
             }
-            Err(err) => {
-                panic!("{}", err);
+            let got = &statements[0];
+            if *got != test.1 {
+                panic!("{}: want {}, got {}, input: {}", ii, test.1, got, test.0);
             }
         }
+        Ok(())
     }
 
     #[test]
@@ -432,12 +476,19 @@ mod tests {
             ("3 + 4; -5 * 5;", "(3 + 4)((-5) * 5)"),
             ("5 < 4 != 3 > 4;", "((5 < 4) != (3 > 4))"),
             ("3 + 4 * 5 == 3 * 1 + 4 * 5;", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
+            ("true;", "true"),
+            ("false;", "false"),
+            ("3 > 5 == false;", "((3 > 5) == false)"),
+            ("3 < 5 == true;", "((3 < 5) == true)"),
         ];
         for (ii, test) in tests.iter().enumerate() {
             let program = Parser::new(Lexer::new(test.0.chars())).parse()
                 .map_err(|err| format!("{}: {}", ii, err))?;
-            println!("{} \nInput {:#?} \n Want {:#?} \n  Got {:#?} \n{:#?}", &ii, &test.0, &test.1, program.to_string(),  &program.statements);
-            assert_eq!(program.to_string(), test.1)
+            if program.to_string() != test.1 {
+                println!("{} \nInput {:#?} \n Want {:#?} \n  Got {:#?} \n{:#?}",
+                    &ii, &test.0, &test.1, program.to_string(), &program.statements);
+                assert_eq!(program.to_string(), test.1)
+            }
         }
         Ok(())
     }
