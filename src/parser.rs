@@ -93,7 +93,7 @@ impl<Lexer> Parser<Lexer>
 
     fn parse_expression(&mut self, p: Precedence) -> Result<Node, Error> {
         let mut left = self.parse_prefix()?;
-        while !self.expect(Kind::Semicolon).is_ok() && p <= Precedence::from(self.peek()?.kind) {
+        while !self.expect(Kind::Semicolon).is_ok() && p < Precedence::from(self.peek()?.kind) {
             self.advance();
             left = self.parse_infix(left)?;
         }
@@ -417,5 +417,28 @@ mod tests {
             }
         }
     }
-    
+
+    #[test]
+    fn precedence() -> Result<(), Error> {
+        let tests = vec![
+            ("-a * b;", "((-a) * b)"),
+            ("!-a;", "(!(-a))"),
+            ("a + b * c;", "(a + (b * c))"),
+            ("a * b * c;", "((a * b) * c)"),
+            ("a + b / c;", "(a + (b / c))"),
+            ("a / b / c;", "((a / b) / c)"),
+            ("5 > 4 == 3 < 4;", "((5 > 4) == (3 < 4))"),
+            ("a + b * c + d / e - f;", "(((a + (b * c)) + (d / e)) - f)"),
+            ("3 + 4; -5 * 5;", "(3 + 4)((-5) * 5)"),
+            ("5 < 4 != 3 > 4;", "((5 < 4) != (3 > 4))"),
+            ("3 + 4 * 5 == 3 * 1 + 4 * 5;", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
+        ];
+        for (ii, test) in tests.iter().enumerate() {
+            let program = Parser::new(Lexer::new(test.0.chars())).parse()
+                .map_err(|err| format!("{}: {}", ii, err))?;
+            println!("{} \nInput {:#?} \n Want {:#?} \n  Got {:#?} \n{:#?}", &ii, &test.0, &test.1, program.to_string(),  &program.statements);
+            assert_eq!(program.to_string(), test.1)
+        }
+        Ok(())
+    }
 }

@@ -21,6 +21,20 @@
     },
     {
       "assignedTo": {
+        "name": "Jack Mordaunt"
+      },
+      "category": "Design",
+      "creation_time": "2019-02-08T17:55:07.282Z",
+      "description": {
+        "content": "Record parse errors such that they can be appropriately reported to the user. ",
+        "mime": "text/markdown"
+      },
+      "id": "3",
+      "references": [],
+      "title": "Recording Parse Errors"
+    },
+    {
+      "assignedTo": {
         "name": "="
       },
       "category": "Parsing",
@@ -41,24 +55,6 @@
       "assignedTo": {
         "name": "Jack Mordaunt"
       },
-      "category": "Design",
-      "creation_time": "2019-02-08T17:55:07.282Z",
-      "description": {
-        "content": "Record parse errors such that they can be appropriately reported to the user. ",
-        "mime": "text/markdown"
-      },
-      "id": "3",
-      "references": [],
-      "title": "Recording Parse Errors"
-    }
-  ],
-  "in-progress": [],
-  "testing": [],
-  "todo": [
-    {
-      "assignedTo": {
-        "name": "Jack Mordaunt"
-      },
       "category": "Parsing",
       "creation_time": "2019-02-08T08:36:04.653Z",
       "description": {
@@ -73,5 +69,8 @@
       "references": [],
       "title": "Expression Parsing"
     }
-  ]
+  ],
+  "in-progress": [],
+  "testing": [],
+  "todo": []
 }
