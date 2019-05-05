@@ -15,6 +15,7 @@ pub enum Node {
     Let { name: String, value: Box<Node> },
     Return { value: Box<Node> },
     If { predicate: Box<Node>, success: Box<Node>, fail: Option<Box<Node>> },
+    Block(Vec<Node>),
     Prefix { operator: Prefix, value: Box<Node> },
     Infix { left: Box<Node>, operator: Infix, right: Box<Node> },
 }
@@ -99,6 +100,20 @@ impl Display for Node {
             Node::String(s) => s.to_owned(),
             Node::Boolean(b) => b.to_string(),
             Node::Identifier { value } => value.to_owned(),
+            Node::If { predicate, success, fail } => {
+                match fail {
+                    None => format!("if {} {{ {} }}", predicate, success),
+                    Some(fail) => format!("if {} {{ {} }} else {{ {} }}", predicate, success, fail),
+                }
+            },
+            Node::Block(list) => {
+                use std::fmt::Write;
+                let mut buf = String::new();
+                for node in list {
+                    write!(buf, "{}", node)?;
+                }
+                buf
+            },
             _ => format!("na"),
         })
     }

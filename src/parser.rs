@@ -128,6 +128,34 @@ impl<Lexer> Parser<Lexer>
                     value: Box::new(self.parse_expression(Precedence::Prefix)?),
                 }
             }
+            Kind::If => {
+                self.expect(Kind::LeftParen)?;
+                self.advance();
+                self.advance();
+                let predicate = self.parse_expression(Precedence::Lowest)?;
+                self.expect(Kind::RightParen)?;
+                self.advance();
+                self.expect(Kind::LeftBrace)?;
+                self.advance();
+                let success = self.parse_block()?;
+                if self.expect(Kind::Else).is_ok() {
+                    self.advance();
+                    self.expect(Kind::LeftBrace)?;
+                    self.advance();
+                    let failure = self.parse_block()?;
+                    Node::If {
+                        predicate: Box::new(predicate),
+                        success: Box::new(success),
+                        fail: Some(Box::new(failure)),
+                    }
+                } else {
+                    Node::If {
+                        predicate: Box::new(predicate),
+                        success: Box::new(success),
+                        fail: None,
+                    }
+                }
+            }
             _ => {
                 return Err(format!("prefix: unimplemented: {:?}", token).into());
             }
@@ -207,6 +235,17 @@ impl<Lexer> Parser<Lexer>
             }
         };
         Ok(node)
+    }
+
+    fn parse_block(&mut self) -> Result<Node, Error> {
+        self.advance();
+        let mut statements = vec![];
+        while self.token().kind != Kind::RightBrace && self.token().kind != Kind::Eof {
+            statements.push(self.parse_statement()?);
+            self.advance();
+        }
+        let block = Node::Block(statements);
+        Ok(block)
     }
 
     fn advance(&self) {
@@ -492,4 +531,48 @@ mod tests {
         }
         Ok(())
     }
+
+    #[test]
+    fn if_expression() -> Result<(), Error> {
+        let input = "if (x < y) { x };";
+        let want = Node::If {
+            predicate: Box::new(Node::Infix {
+                left: Box::new(Node::Identifier { value: "x".into() }),
+                operator: Infix::LessThan,
+                right: Box::new(Node::Identifier { value: "y".into() }),
+            }),
+            success: Box::new(Node::Block(vec![Node::Identifier {value: "x".into() }])),
+            fail: None,
+            // fail: Some(Box::new(Node::Placeholder)),
+        };
+        let program = Parser::new(Lexer::new(input.chars())).parse()
+            .map_err(|err| format!("parsing if statement: {}", err))?;
+        println!("{}", program);
+        println!("{}", want);
+        assert!(program.statements.len() == 1);
+        assert!(program.statements[0] == want);
+        Ok(())
+    }
+
+    #[test]
+    fn if_else_expression() -> Result<(), Error> {
+        let input = "if (x < y) { x } else { y };";
+        let want = Node::If {
+            predicate: Box::new(Node::Infix {
+                left: Box::new(Node::Identifier { value: "x".into() }),
+                operator: Infix::LessThan,
+                right: Box::new(Node::Identifier { value: "y".into() }),
+            }),
+            success: Box::new(Node::Block(vec![Node::Identifier {value: "x".into() }])),
+            fail: Some(Box::new(Node::Block(vec![Node::Identifier {value: "y".into() }]))),
+        };
+        let program = Parser::new(Lexer::new(input.chars())).parse()
+            .map_err(|err| format!("parsing if statement: {}", err))?;
+        println!("{}", program);
+        println!("{}", want);
+        assert!(program.statements.len() == 1);
+        assert!(program.statements[0] == want);
+        Ok(())
+    }
+
 }
