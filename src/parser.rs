@@ -543,7 +543,6 @@ mod tests {
             }),
             success: Box::new(Node::Block(vec![Node::Identifier {value: "x".into() }])),
             fail: None,
-            // fail: Some(Box::new(Node::Placeholder)),
         };
         let program = Parser::new(Lexer::new(input.chars())).parse()
             .map_err(|err| format!("parsing if statement: {}", err))?;
