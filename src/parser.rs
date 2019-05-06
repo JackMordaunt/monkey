@@ -68,19 +68,22 @@ impl<Lexer> Parser<Lexer>
         let name = self.expect(Kind::Ident)?.literal;
         self.advance();
         self.expect(Kind::Assign)?;
-        // Note: Skipping expression parsing for the moment.
+        self.advance();
+        self.advance();
+        let value = self.parse_expression(Precedence::Lowest)?;
         while self.token().kind != Kind::Semicolon {
             self.advance();
         }
-        Ok(Node::Let{name: name, value: Box::new(Node::Placeholder)})
+        Ok(Node::Let{name: name, value: Box::new(value)})
     }
 
     fn parse_return_statement(&mut self) -> Result<Node, Error> {
         self.advance();
-        while self.token().kind != Kind::Semicolon {
+        let value = self.parse_expression(Precedence::Lowest)?;
+        if self.expect(Kind::Semicolon).is_ok() {
             self.advance();
         }
-        Ok(Node::Return { value: Box::new(Node::Placeholder) })
+        Ok(Node::Return { value: Box::new(value) })
     }
 
     fn parse_expression_statement(&mut self) -> Result<Node, Error> {
@@ -346,46 +349,44 @@ mod tests {
             let ten = 10;
         "#;
         let want = vec![
-            Node::Let { name: "five".to_string(), value: Box::new(Node::Placeholder) },
-            Node::Let { name: "ten".to_string(), value: Box::new(Node::Placeholder) },
-            // Node::Let { name: "five".to_string(), value: Box::new(Node::Int(5)) },
-            // Node::Let { name: "ten".to_string(), value: Box::new(Node::Int(10)) },
+            Node::Let { name: "five".to_string(), value: Box::new(Node::Int(5)) },
+            Node::Let { name: "ten".to_string(), value: Box::new(Node::Int(10)) },
         ];
         let mut parser = Parser::new(Lexer::new(input.chars()));
         let Program { statements } = parser.parse()
             .map_err(|err| format!("parsing: {}", err))
             .unwrap();
         assert_eq!(want.len(), statements.len());
-        let diffs = diff(&want, &statements);
-        if diffs.len() > 0 {
-            panic!("diff: {:?}", diff(&want, &statements));
-        }
+        assert_eq!(want, statements);
     }
 
     #[test]
     fn return_statement() {
-        let input: &'static str = r#"
-            return a + b;
-            return 10;
-            return "oof";
-        "#;
-        let want = vec![
-            Node::Return { value: Box::new(Node::Placeholder) },
-            Node::Return { value: Box::new(Node::Placeholder) },
-            Node::Return { value: Box::new(Node::Placeholder) },
+        let tests = vec![
+            (
+                "return a + b;",
+                Node::Return { value: Box::new(Node::Infix {
+                    left: Box::new(Node::Identifier { value: "a".into() }),
+                    operator: Infix::Add,
+                    right: Box::new(Node::Identifier { value: "b".into() }),
+                })},
+            ),
+            (
+                "return 10;",
+                Node::Return { value: Box::new(Node::Int(10))},
+            ),
+            (
+                "return foobar;",
+                Node::Return { value: Box::new(Node::Identifier { value: "foobar".into() })},
+            ),
         ];
-        let mut parser = Parser::new(Lexer::new(input.chars()));
-        match parser.parse() {
-            Ok(Program { statements }) => {
-                assert_eq!(want.len(), statements.len());
-                let diffs = diff(&want, &statements);
-                if diffs.len() > 0 {
-                    panic!("diff: {:?}", diff(&want, &statements));
-                }
-            }
-            Err(err) => {
-                panic!("{}", err);
-            }
+        for (input, want) in tests {
+            let program = Parser::new(Lexer::new(input.chars())).parse();
+            let Program { statements } = match program {
+                Ok(p) => p,
+                Err(err) => panic!("{}", err),
+            };
+            assert_eq!(want, statements[0]);
         }
     }
 
@@ -634,12 +635,11 @@ mod tests {
                     ],
                     body: Box::new(Node::Block(vec![
                         Node::Return {
-                            value: Box::new(Node::Placeholder),
-                            // value: Box::new(Node::Infix {
-                            //     left: Box::new(Node::Identifier { value: "x".into() }),
-                            //     operator: Infix::Add,
-                            //     right: Box::new(Node::Identifier { value: "y".into() }),
-                            // }),
+                            value: Box::new(Node::Infix {
+                                left: Box::new(Node::Identifier { value: "x".into() }),
+                                operator: Infix::Add,
+                                right: Box::new(Node::Identifier { value: "y".into() }),
+                            }),
                         },
                     ])),
                 }
@@ -707,7 +707,7 @@ mod tests {
                         Node::Int(1),
                         Node::Function { 
                             parameters: vec![],
-                            body: Box::new(Node::Block(vec![Node::Return { value: Box::new(Node::Placeholder) }])),
+                            body: Box::new(Node::Block(vec![Node::Return { value: Box::new(Node::Int(1)) }])),
                         },
                     ],
                 },
@@ -721,12 +721,11 @@ mod tests {
                             Node::Identifier { value: "b".into() },
                         ],
                         body: Box::new(Node::Block(vec![Node::Return {
-                            // value: Box::new(Node::Infix { 
-                            //     left: Box::new(Node::Identifier { value: "a".into() }),
-                            //     operator: Infix::Add,
-                            //     right: Box::new(Node::Identifier { value: "b".into() }),
-                            // }),
-                            value: Box::new(Node::Placeholder),
+                            value: Box::new(Node::Infix { 
+                                left: Box::new(Node::Identifier { value: "a".into() }),
+                                operator: Infix::Add,
+                                right: Box::new(Node::Identifier { value: "b".into() }),
+                            }),
                         }]))
                     }),
                     arguments: vec![
