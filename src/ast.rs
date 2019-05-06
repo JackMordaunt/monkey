@@ -118,10 +118,11 @@ impl Display for Node {
                 }
             },
             Node::Block(list) => {
-                list
-                    .iter()
-                    .map(|b| b.to_string()).collect::<Vec<String>>()
-                    .join("")
+                format!("{{{}}}",
+                    list
+                        .iter()
+                        .map(|b| b.to_string()).collect::<Vec<String>>()
+                        .join(""))
             },
             Node::Function { parameters, body } => {
                 let parameters = parameters
@@ -140,7 +141,10 @@ impl Display for Node {
             Node::Let { name, value } => {
                 format!("let {} = {};", name, value)
             }
-            _ => format!("na"),
+            Node::Return { value } => {
+                format!("return {};", value)
+            }
+            _ => format!("{:?}", self),
         })
     }
 }
