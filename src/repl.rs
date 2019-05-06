@@ -1,4 +1,5 @@
 use crate::lexer::Lexer;
+use crate::parser::Parser;
 
 use std::io::prelude::*;
 use std::error::Error;
@@ -14,8 +15,7 @@ pub fn start<R, W>(r: &mut R, w: &mut W) -> Result<(), Box<dyn Error>>
         write!(w, "{} ", PROMPT)?; w.flush()?;
         r.read_line(&mut line)
             .map_err(|err| format!("reading line: {}", err))?;
-        for token in Lexer::new(line.chars()) {
-            println!("{:?}", token);
-        }
+        let program = Parser::new(Lexer::new(line.chars())).parse()?;
+        println!("{}", program);
     }
 }
