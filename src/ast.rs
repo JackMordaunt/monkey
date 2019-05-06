@@ -136,6 +136,9 @@ impl Display for Node {
                     .map(|a| a.to_string())
                     .collect::<Vec<String>>()
                     .join(", "))
+            },
+            Node::Let { name, value } => {
+                format!("let {} = {};", name, value)
             }
             _ => format!("na"),
         })
