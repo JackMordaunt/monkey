@@ -340,7 +340,6 @@ impl<Lexer> Parser<Lexer>
 mod tests {
     use super::*;
     use crate::lexer::Lexer;
-    use crate::util::diff;
 
     #[test]
     fn let_statement() {
@@ -403,11 +402,7 @@ mod tests {
         let mut parser = Parser::new(Lexer::new(input.chars()));
         match parser.parse() {
             Ok(Program { statements }) => {
-                assert_eq!(want.len(), statements.len());
-                let diffs = diff(&want, &statements);
-                if diffs.len() > 0 {
-                    panic!("diff: {:?}", diff(&want, &statements));
-                }
+                assert_eq!(want, statements);
             }
             Err(err) => {
                 panic!("{}", err);
@@ -432,11 +427,7 @@ mod tests {
         let mut parser = Parser::new(Lexer::new(input.chars()));
         match parser.parse() {
             Ok(Program { statements }) => {
-                assert_eq!(want.len(), statements.len());
-                let diffs = diff(&want, &statements);
-                if diffs.len() > 0 {
-                    panic!("diff: {:?}", diff(&want, &statements));
-                }
+                assert_eq!(want, statements);
             }
             Err(err) => {
                 panic!("{}", err);
@@ -536,16 +527,10 @@ mod tests {
                 },
             ),
         ];
-        for (ii, test) in tests.iter().enumerate() {
-            let Program { statements } = Parser::new(Lexer::new(test.0.chars())).parse()
+        for (ii, (input, want)) in tests.into_iter().enumerate() {
+            let Program { statements } = Parser::new(Lexer::new(input.chars())).parse()
                 .map_err(|err| format!("{}: {}", ii, err))?;
-            if statements.len() != 1 {
-                panic!("wrong number of statements: want 1, got {}", statements.len());
-            }
-            let got = &statements[0];
-            if *got != test.1 {
-                panic!("{}: want {}, got {}, input: {}", ii, test.1, got, test.0);
-            }
+            assert_eq!(want, statements[0]);
         }
         Ok(())
     }
@@ -573,8 +558,6 @@ mod tests {
             let program = Parser::new(Lexer::new(test.0.chars())).parse()
                 .map_err(|err| format!("{}: {}", ii, err))?;
             if program.to_string() != test.1 {
-                println!("{} \nInput {:#?} \n Want {:#?} \n  Got {:#?} \n{:#?}",
-                    &ii, &test.0, &test.1, program.to_string(), &program.statements);
                 assert_eq!(program.to_string(), test.1)
             }
         }
@@ -595,8 +578,6 @@ mod tests {
         };
         let program = Parser::new(Lexer::new(input.chars())).parse()
             .map_err(|err| format!("parsing if statement: {}", err))?;
-        println!("{}", program);
-        println!("{}", want);
         assert!(program.statements.len() == 1);
         assert!(program.statements[0] == want);
         Ok(())
@@ -616,8 +597,6 @@ mod tests {
         };
         let program = Parser::new(Lexer::new(input.chars())).parse()
             .map_err(|err| format!("parsing if statement: {}", err))?;
-        println!("{}", program);
-        println!("{}", want);
         assert!(program.statements.len() == 1);
         assert!(program.statements[0] == want);
         Ok(())
@@ -676,7 +655,6 @@ mod tests {
             let program = Parser::new(Lexer::new(input.chars())).parse()
                 .map_err(|err| format!("parsing function literal: {}", err))?;
             assert!(program.statements.len() == 1);
-            println!("{:?} \n--- \n{:?}", program.statements[0], want);
             assert!(program.statements[0] == want);
         }
         Ok(())
@@ -742,7 +720,6 @@ mod tests {
                 Ok(p) => p,
                 Err(err) => panic!("{}", err),
             };
-            println!("want {:?}\n got {:?}\n", want, program.statements[0]);
             assert!(program.statements.len() == 1);
             assert!(program.statements[0] == want);
         }

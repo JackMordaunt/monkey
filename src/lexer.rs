@@ -143,7 +143,6 @@ impl<I> Iterator for Lexer<I>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::diff;
     #[test]
     fn tokens() {
         let input: &'static str = r#"
@@ -255,11 +254,6 @@ mod tests {
             Token::new(Kind::Semicolon, ";"),
         ];
         let got: Vec<Token> = Lexer::new(input.chars()).collect();
-        if want.len() != got.len() {
-            panic!("want={:?} \ngot={:?} \ndiff={:?}", want, got, diff(&want, &got));
-        }
-        for (ii, token) in want.into_iter().enumerate() {
-            assert_eq!(token, got[ii]);
-        }
+        assert_eq!(want, got);
     }
 }
