@@ -253,6 +253,31 @@ impl<Lexer> Parser<Lexer>
                     right: Box::new(self.parse_expression(Precedence::from(token.kind))?),
                 }
             }
+            Kind::LeftParen => {
+                let function = Box::new(left.clone());
+                let mut arguments = vec![];
+                if self.expect(Kind::RightParen).is_ok() {
+                    self.advance();
+                    Node::Call {
+                        function,
+                        arguments,
+                    }                    
+                } else {
+                    self.advance();
+                    arguments.push(self.parse_expression(Precedence::Lowest)?);
+                    while self.expect(Kind::Comma).is_ok() {
+                        self.advance();
+                        self.advance();
+                        arguments.push(self.parse_expression(Precedence::Lowest)?);
+                    }
+                    self.expect(Kind::RightParen)?;
+                    self.advance();
+                    Node::Call {
+                        function,
+                        arguments,
+                    }
+                }
+            }
             _ => {
                 return Err(format!("infix: unimplemented for {:?}", token).into());
             }
@@ -652,6 +677,74 @@ mod tests {
                 .map_err(|err| format!("parsing function literal: {}", err))?;
             assert!(program.statements.len() == 1);
             println!("{:?} \n--- \n{:?}", program.statements[0], want);
+            assert!(program.statements[0] == want);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn function_call() -> Result<(), Error> {
+        let tests = vec![
+            (
+                "foo();",
+                Node::Call {
+                    function: Box::new(Node::Identifier { value: "foo".into() }),
+                    arguments: vec![],
+                },
+            ),
+            (
+                "add(1, 2);",
+                Node::Call {
+                    function: Box::new(Node::Identifier { value: "add".into() }),
+                    arguments: vec![Node::Int(1), Node::Int(2)],
+                },
+            ),
+            (
+                "add(1, fn() { return 1; });",
+                Node::Call {
+                    function: Box::new(Node::Identifier { value: "add".into() }),
+                    arguments: vec![
+                        Node::Int(1),
+                        Node::Function { 
+                            parameters: vec![],
+                            body: Box::new(Node::Block(vec![Node::Return { value: Box::new(Node::Placeholder) }])),
+                        },
+                    ],
+                },
+            ),
+            (
+                "fn(a, b) { return a + b; }(1, 2);",
+                Node::Call {
+                    function: Box::new(Node::Function {
+                        parameters: vec![
+                            Node::Identifier { value: "a".into() },
+                            Node::Identifier { value: "b".into() },
+                        ],
+                        body: Box::new(Node::Block(vec![Node::Return {
+                            // value: Box::new(Node::Infix { 
+                            //     left: Box::new(Node::Identifier { value: "a".into() }),
+                            //     operator: Infix::Add,
+                            //     right: Box::new(Node::Identifier { value: "b".into() }),
+                            // }),
+                            value: Box::new(Node::Placeholder),
+                        }]))
+                    }),
+                    arguments: vec![
+                        Node::Int(1),
+                        Node::Int(2),
+                    ],
+                },
+            ),
+        ];
+        for (input, want) in tests {
+            let program = Parser::new(Lexer::new(input.chars())).parse()
+                .map_err(|err| format!("parsing function call: {}", err));
+            let program = match program {
+                Ok(p) => p,
+                Err(err) => panic!("{}", err),
+            };
+            println!("want {:?}\n got {:?}\n", want, program.statements[0]);
+            assert!(program.statements.len() == 1);
             assert!(program.statements[0] == want);
         }
         Ok(())

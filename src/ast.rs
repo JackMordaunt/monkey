@@ -25,6 +25,9 @@ pub enum Node {
     Prefix { operator: Prefix, value: Box<Node> },
     Infix { left: Box<Node>, operator: Infix, right: Box<Node> },
     Function { parameters: Vec<Node>, body: Box<Node> },
+    // function is an identifier or a function literal.
+    // arguments are expressions.
+    Call { function: Box<Node>, arguments: Vec<Node> },
 }
 
 // Prefix operator. 
@@ -65,6 +68,7 @@ impl Precedence {
             Kind::ArrowLeft | Kind::ArrowRight => Precedence::LessGreater,
             Kind::Plus | Kind::Minus => Precedence::Sum,
             Kind::Slash | Kind::Asterisk  => Precedence::Product,
+            Kind::LeftParen => Precedence::Call,
             _ => Precedence::Lowest,
         }
     }
@@ -100,7 +104,6 @@ impl Display for Program {
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        use std::fmt::Write;
         write!(f, "{}", match self {
             Node::Prefix { operator, value } => format!("({}{})", operator, value),
             Node::Infix { left, operator, right } => format!("({} {} {})", left, operator, right),
@@ -115,25 +118,25 @@ impl Display for Node {
                 }
             },
             Node::Block(list) => {
-                let mut buf = String::new();
-                for node in list {
-                    write!(buf, "{}", node)?;
-                }
-                buf
+                list
+                    .iter()
+                    .map(|b| b.to_string()).collect::<Vec<String>>()
+                    .join("")
             },
             Node::Function { parameters, body } => {
-                let mut buf = String::new();
-                buf.write_char('(')?;
-                for (ii, param) in parameters.iter().enumerate() {
-                    write!(buf, "{}", param)?;
-                    if ii < parameters.len()-1 {
-                        buf.write_char(',')?;
-                    }
-                }
-                buf.write_char(')')?;
-                write!(buf, "{}", body)?;
-                buf
+                let parameters = parameters
+                    .iter()
+                    .map(|p| p.to_string()).collect::<Vec<String>>()
+                    .join(", ");
+                format!("({}){}", parameters, body)
             },
+            Node::Call { function, arguments } => {
+                format!("{}({})", function, arguments
+                    .iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", "))
+            }
             _ => format!("na"),
         })
     }
