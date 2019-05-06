@@ -2,6 +2,12 @@ use crate::token::{Token, Kind};
 use std::fmt::{self, Display, Formatter};
 
 /// Node is an object that can exist in an AST.
+//
+// TODO: Note that in cases where I expect a specific enum branch I am required
+// generalise to `Node` because enum variants are not first class types.
+// In order to be more correct I create individual struct types and wrap 
+// them in the enum. 
+//
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum Node {
     // Placeholder just allows for a partialially constructed Node (for easier
@@ -18,6 +24,7 @@ pub enum Node {
     Block(Vec<Node>),
     Prefix { operator: Prefix, value: Box<Node> },
     Infix { left: Box<Node>, operator: Infix, right: Box<Node> },
+    Function { parameters: Vec<Node>, body: Box<Node> },
 }
 
 // Prefix operator. 
@@ -93,6 +100,7 @@ impl Display for Program {
 
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        use std::fmt::Write;
         write!(f, "{}", match self {
             Node::Prefix { operator, value } => format!("({}{})", operator, value),
             Node::Infix { left, operator, right } => format!("({} {} {})", left, operator, right),
@@ -107,11 +115,23 @@ impl Display for Node {
                 }
             },
             Node::Block(list) => {
-                use std::fmt::Write;
                 let mut buf = String::new();
                 for node in list {
                     write!(buf, "{}", node)?;
                 }
+                buf
+            },
+            Node::Function { parameters, body } => {
+                let mut buf = String::new();
+                buf.write_char('(')?;
+                for (ii, param) in parameters.iter().enumerate() {
+                    write!(buf, "{}", param)?;
+                    if ii < parameters.len()-1 {
+                        buf.write_char(',')?;
+                    }
+                }
+                buf.write_char(')')?;
+                write!(buf, "{}", body)?;
                 buf
             },
             _ => format!("na"),

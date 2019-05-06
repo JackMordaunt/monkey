@@ -156,6 +156,29 @@ impl<Lexer> Parser<Lexer>
                     }
                 }
             }
+            Kind::Function => {
+                self.expect(Kind::LeftParen)?;
+                self.advance();
+                let mut params = vec![];
+                while self.expect(Kind::Ident).is_ok() {
+                    self.advance();
+                    params.push(Node::Identifier {
+                        value: self.token().literal,
+                    });
+                    if self.expect(Kind::Comma).is_err() {
+                        break;
+                    }
+                    self.advance();
+                }
+                self.expect(Kind::RightParen)?;
+                self.advance();
+                self.advance();
+                let body = self.parse_block()?;
+                Node::Function {
+                    parameters: params,
+                    body: Box::new(body),
+                }
+            }
             _ => {
                 return Err(format!("prefix: unimplemented: {:?}", token).into());
             }
@@ -571,6 +594,66 @@ mod tests {
         println!("{}", want);
         assert!(program.statements.len() == 1);
         assert!(program.statements[0] == want);
+        Ok(())
+    }
+
+    #[test]
+    fn function_literal() -> Result<(), Error> {
+        let tests = vec![
+            (
+                "fn(x, y) { return x + y; };",
+                Node::Function {
+                    parameters: vec![
+                        Node::Identifier { value: "x".into() },
+                        Node::Identifier { value: "y".into() },
+                    ],
+                    body: Box::new(Node::Block(vec![
+                        Node::Return {
+                            value: Box::new(Node::Placeholder),
+                            // value: Box::new(Node::Infix {
+                            //     left: Box::new(Node::Identifier { value: "x".into() }),
+                            //     operator: Infix::Add,
+                            //     right: Box::new(Node::Identifier { value: "y".into() }),
+                            // }),
+                        },
+                    ])),
+                }
+            ),
+            (
+                "fn() {};",
+                Node::Function {
+                    parameters: vec![],
+                    body: Box::new(Node::Block(vec![])),
+                },
+            ),
+            (
+                "fn(x) {};",
+                Node::Function {
+                    parameters: vec![
+                        Node::Identifier { value: "x".into() },
+                    ],
+                    body: Box::new(Node::Block(vec![])),
+                },
+            ),
+            (
+                "fn(x, y, z) {};",
+                Node::Function {
+                    parameters: vec![
+                        Node::Identifier { value: "x".into() },
+                        Node::Identifier { value: "y".into() },
+                        Node::Identifier { value: "z".into() },
+                    ],
+                    body: Box::new(Node::Block(vec![])),
+                },
+            ),
+        ];
+        for (input, want) in tests {
+            let program = Parser::new(Lexer::new(input.chars())).parse()
+                .map_err(|err| format!("parsing function literal: {}", err))?;
+            assert!(program.statements.len() == 1);
+            println!("{:?} \n--- \n{:?}", program.statements[0], want);
+            assert!(program.statements[0] == want);
+        }
         Ok(())
     }
 
