@@ -50,15 +50,15 @@ impl<Lexer> Parser<Lexer>
         let node = match self.token().kind {
             Kind::Let => {
                 self.parse_let_statement()
-                    .map_err(|err| format!("'let' statement: {}", err))?
+                    .map_err(|err| format!("'let': {}", err))?
             },
             Kind::Return => {
                 self.parse_return_statement()
-                    .map_err(|err| format!("'return' statement: {}", err))?
+                    .map_err(|err| format!("'return': {}", err))?
             },
             _ => {
                 self.parse_expression_statement()
-                    .map_err(|err| format!("expression statement: {}", err))?
+                    .map_err(|err| format!("expression: {}", err))?
             },
         };
         Ok(node)
@@ -183,7 +183,7 @@ impl<Lexer> Parser<Lexer>
                 }
             }
             _ => {
-                return Err(format!("prefix: unimplemented: {:?}", token).into());
+                return Err(format!("unimplemented: {}", token.literal).into());
             }
         };
         Ok(node)
@@ -282,7 +282,7 @@ impl<Lexer> Parser<Lexer>
                 }
             }
             _ => {
-                return Err(format!("infix: unimplemented for {:?}", token).into());
+                return Err(format!("unimplemented for {}", token.literal).into());
             }
         };
         Ok(node)
