@@ -5,6 +5,7 @@ use crate::util::MultiError;
 use std::iter::Peekable;
 use std::cell::RefCell;
 
+// TODO: Error type that can display line number and line context.
 type Error = Box<dyn std::error::Error>;
 
 /// Parser transforms a stream of tokens into an AST for the monkey language.
@@ -49,16 +50,13 @@ impl<Lexer> Parser<Lexer>
     fn parse_statement(&mut self) -> Result<Node, Error> {
         let node = match self.token().kind {
             Kind::Let => {
-                self.parse_let_statement()
-                    .map_err(|err| format!("'let': {}", err))?
+                self.parse_let_statement()?
             },
             Kind::Return => {
-                self.parse_return_statement()
-                    .map_err(|err| format!("'return': {}", err))?
+                self.parse_return_statement()?
             },
             _ => {
-                self.parse_expression_statement()
-                    .map_err(|err| format!("expression: {}", err))?
+                self.parse_expression_statement()?
             },
         };
         Ok(node)
@@ -183,7 +181,7 @@ impl<Lexer> Parser<Lexer>
                 }
             }
             _ => {
-                return Err(format!("unimplemented: {}", token.literal).into());
+                return Err(format!("unexpected: {}", token.literal).into());
             }
         };
         Ok(node)
@@ -282,7 +280,7 @@ impl<Lexer> Parser<Lexer>
                 }
             }
             _ => {
-                return Err(format!("unimplemented for {}", token.literal).into());
+                return Err(format!("unexpected {}", token.literal).into());
             }
         };
         Ok(node)
