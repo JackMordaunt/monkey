@@ -16,6 +16,15 @@ impl MultiError {
     }
 }
 
+impl IntoIterator for MultiError {
+    type Item = Box<dyn Error>;
+    type IntoIter = ::std::vec::IntoIter<Self::Item>;
+    
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    } 
+}
+
 impl Display for MultiError {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         for err in &self.0 {

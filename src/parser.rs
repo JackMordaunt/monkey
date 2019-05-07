@@ -26,7 +26,7 @@ impl<Lexer> Parser<Lexer>
         }
     }
 
-    pub fn parse(&mut self) -> Result<Program, Error> {
+    pub fn parse(&mut self) -> Result<Program, MultiError> {
         let mut nodes: Vec<Node> = vec![];
         let mut errors: MultiError = MultiError::new();
         loop {
@@ -40,7 +40,7 @@ impl<Lexer> Parser<Lexer>
             }
         }
         if errors.len() > 0 {
-            Err(Box::new(errors))
+            Err(errors)
         } else {
             Ok(Program::new(nodes))
         }

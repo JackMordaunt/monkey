@@ -18,7 +18,11 @@ pub fn start<R, W>(r: &mut R, w: &mut W)
         };
         match Parser::new(Lexer::new(line.chars())).parse() {
             Ok(program) => println!("{}", program),
-            Err(err) => println!("\n{} \n{}", "error".red(), err),
+            Err(errors) => {
+                for err in errors.into_iter() {
+                    println!("{}: {}", "error".red(), err);
+                }
+            },
         };
     }
 }
