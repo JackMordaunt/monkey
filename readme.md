@@ -106,6 +106,7 @@ For this parser "statements" do not produce values, whereas "expressions" do pro
 ### Zero allocation lexing
 
 - Reuse String buffer tied to Lexer object.
+- Solve the recursive nature of `Node` enum without resorting to `Box`. 
 
 ## Differences between Rust impl and reference Go impl
 
